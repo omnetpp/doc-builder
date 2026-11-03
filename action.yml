@@ -1,0 +1,117 @@
+name: Build OMNeT++ model documentation
+description: >-
+  Builds the documentation website of an OMNeT++ model project in the OMNeT++ doc-builder image: the NED
+  reference (opp_docgen), optionally a Sphinx site around it and the C++ API (doxygen), optionally PDFs.
+author: OMNeT++
+branding:
+  icon: book-open
+  color: blue
+
+inputs:
+  project-dir:
+    description: The OMNeT++ project whose NED and MSG files are documented.
+    default: .
+  output-dir:
+    description: Where the site is built.
+    default: _site
+  title:
+    description: Title of the NED reference and the C++ API. Default is the name of the project directory.
+    default: ''
+  sphinx-source:
+    description: >-
+      The Sphinx project (the directory of conf.py) to build the site from. Without it, the site is the
+      NED reference alone.
+    default: ''
+  ned-dir:
+    description: Where the NED reference is generated in the Sphinx project.
+    default: ned
+  ned-format:
+    description: Format of the NED reference without Sphinx (html-material, html-readthedocs or html).
+    default: html-material
+  ned-path:
+    description: >-
+      NED source roots of dependencies (e.g. a checkout of INET), ';'- or ':'-separated, indexed for
+      linking but not documented.
+    default: ''
+  external-docs:
+    description: >-
+      Documentation of dependencies to link to, as <package>=<url> items, comma- or space-separated
+      (opp_docgen -l).
+    default: ''
+  docgen-args:
+    description: Further opp_docgen arguments.
+    default: ''
+  doxygen:
+    description: Also generate the C++ API with doxygen.
+    default: 'false'
+  doxygen-input:
+    description: Source directories for the bundled doxygen configuration. Default is <project-dir>/src.
+    default: ''
+  doxyfile:
+    description: Own doxygen configuration instead of the bundled one.
+    default: ''
+  api-dir:
+    description: Where the C++ API is generated, in the Sphinx project or in the site.
+    default: api
+  pdf:
+    description: Also build the Sphinx project as PDF, into the root of the site.
+    default: 'false'
+  sphinx-args:
+    description: Further sphinx-build arguments.
+    default: ''
+  fail-on-warnings:
+    description: Fail if opp_docgen or Sphinx warn.
+    default: 'false'
+  image-tag:
+    description: Tag of ghcr.io/omnetpp/doc-builder.
+    default: latest
+  image:
+    description: Image to use instead of ghcr.io/omnetpp/doc-builder, as is (image-tag does not change it).
+    default: ''
+  upload-pages-artifact:
+    description: Upload the site as the GitHub Pages artifact, for actions/deploy-pages.
+    default: 'true'
+
+outputs:
+  site-dir:
+    description: Absolute path of the built site.
+    value: ${{ steps.build.outputs.site-dir }}
+
+runs:
+  using: composite
+  steps:
+    - id: build
+      shell: bash
+      env:
+        PROJECT_DIR: ${{ inputs.project-dir }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+        TITLE: ${{ inputs.title }}
+        SPHINX_SOURCE: ${{ inputs.sphinx-source }}
+        NED_DIR: ${{ inputs.ned-dir }}
+        NED_FORMAT: ${{ inputs.ned-format }}
+        NED_PATH: ${{ inputs.ned-path }}
+        EXTERNAL_DOCS: ${{ inputs.external-docs }}
+        DOCGEN_ARGS: ${{ inputs.docgen-args }}
+        DOXYGEN: ${{ inputs.doxygen }}
+        DOXYGEN_INPUT: ${{ inputs.doxygen-input }}
+        DOXYFILE: ${{ inputs.doxyfile }}
+        API_DIR: ${{ inputs.api-dir }}
+        PDF: ${{ inputs.pdf }}
+        SPHINX_ARGS: ${{ inputs.sphinx-args }}
+        FAIL_ON_WARNINGS: ${{ inputs.fail-on-warnings }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        IMAGE: ${{ inputs.image }}
+      run: |
+        "$GITHUB_ACTION_PATH/doc-builder.sh" \
+          --project-dir="$PROJECT_DIR" --output-dir="$OUTPUT_DIR" --title="$TITLE" \
+          --sphinx-source="$SPHINX_SOURCE" --ned-dir="$NED_DIR" --ned-format="$NED_FORMAT" \
+          --ned-path="$NED_PATH" --external-docs="$EXTERNAL_DOCS" --docgen-args="$DOCGEN_ARGS" \
+          --doxygen="$DOXYGEN" --doxygen-input="$DOXYGEN_INPUT" --doxyfile="$DOXYFILE" --api-dir="$API_DIR" \
+          --pdf="$PDF" --sphinx-args="$SPHINX_ARGS" --fail-on-warnings="$FAIL_ON_WARNINGS" \
+          --image-tag="$IMAGE_TAG" --image="$IMAGE"
+        echo "site-dir=$(realpath -m "$OUTPUT_DIR")" >> "$GITHUB_OUTPUT"
+
+    - if: inputs.upload-pages-artifact == 'true'
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: ${{ steps.build.outputs.site-dir }}

@@ -1,0 +1,68 @@
+# Builds the sample model in test/sample-model with the action of this repository, in each of its
+# modes. Also runs weekly, to notice when a new doc-builder image breaks it.
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  ned-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          project-dir: test/sample-model
+          doxygen: true
+          fail-on-warnings: true
+          upload-pages-artifact: false
+      - name: Check the site
+        run: |
+          test -f _site/index.html
+          test -f _site/api/classsample_1_1Source.html
+          grep -q 'href="api/classsample_1_1Source.html"' _site/sample.Source.html
+
+  sphinx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: docs
+        uses: ./
+        with:
+          project-dir: test/sample-model
+          sphinx-source: test/sample-model/doc
+          doxygen: true
+          fail-on-warnings: true
+      - name: Check the site
+        env:
+          SITE: ${{ steps.docs.outputs.site-dir }}
+        run: |
+          test -f "$SITE/index.html"
+          test -f "$SITE/ned/types/sample.Source.html"
+          test -f "$SITE/api/classsample_1_1Source.html"
+          grep -q 'href="../../api/classsample_1_1Source.html"' "$SITE/ned/types/sample.Source.html"
+          grep -q 'api/classsample_1_1Source.html' "$SITE/manual.html"
+          grep -q 'ned/types/sample.Source.html' "$SITE/manual.html"
+
+  sphinx-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          project-dir: test/sample-model
+          sphinx-source: test/sample-model/doc
+          doxygen: true
+          pdf: true
+          upload-pages-artifact: false
+      - name: Check the site
+        run: |
+          test -f _site/index.html
+          test -f _site/sample-model.pdf

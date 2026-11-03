@@ -1,0 +1,4 @@
+/* In a Sphinx site, the page title and the navigation are the site's: hide doxygen's. */
+#top, div.header {
+    display: none;
+}
