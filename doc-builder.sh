@@ -219,25 +219,23 @@ doxytags_opts() {
     echo "--doxy-url-prefix=$(realpath -m --relative-to="$types_dir" "$api")/"
 }
 
-# The index of the C++ API in the Sphinx project: the class list, and all pages of the API in its
-# (hidden) toctree, so that Sphinx does not warn about pages outside every toctree.
+# The index of the C++ API in the Sphinx project: the class list, with the overview and topic pages
+# in its (hidden) toctree. The class, namespace and file pages keep doxysphinx's :orphan: and are
+# reached through the class list and their links: sphinx_immaterial writes the whole global toctree
+# into every page of the site, so listing them would grow each page with the API.
 write_api_index() {
     local dir="$1" pages=() page
-    local patterns=(hierarchy 'namespace*' 'class*' 'struct*' 'union*' 'group_*' '*_8h' '*_source' '*')
-    declare -A seen=()
-    for pattern in "${patterns[@]}"; do
-        for page in "$dir"/$pattern.rst; do
-            [ -e "$page" ] || continue
-            page="$(basename "$page" .rst)"
-            [ -z "${seen[$page]:-}" ] || continue
-            seen[$page]=1
-            pages+=("$page")
-        done
+    for page in "$dir"/{hierarchy,classes,namespaces}.rst "$dir"/group_*.rst; do
+        [ -e "$page" ] || continue
+        sed -i '/^:orphan:$/d' "$page"
+        pages+=("$(basename "$page" .rst)")
     done
     {
-        printf '%s\n' "$name C++ API" "$(printf '%*s' "$(( ${#name} + 8 ))" '' | tr ' ' '=')" "" \
-            ".. toctree::" "   :hidden:" ""
-        printf '   %s\n' "${pages[@]}"
+        printf '%s\n' "$name C++ API" "$(printf '%*s' "$(( ${#name} + 8 ))" '' | tr ' ' '=')" ""
+        if [ ${#pages[@]} -gt 0 ]; then
+            printf '%s\n' ".. toctree::" "   :hidden:" ""
+            printf '   %s\n' "${pages[@]}"
+        fi
         if [ -f "$dir/annotated.html" ]; then
             printf '%s\n' "" ".. container:: doxygen-content" "" "   .. raw:: html" "      :file: annotated.html"
         fi
@@ -270,11 +268,17 @@ else
 
     prepare_dir "$out"
     if [ "$doxygen" = true ]; then
-        # The same pruning as in the OMNeT++ API documentation: no member lists and pages index.
-        (cd "$api_out" && rm -f pages.html files.html ./*-members.html functions*.html)
+        # The same pruning as in the OMNeT++ API documentation: no member lists and pages index. The
+        # *_8* pages are sources, e.g. of a globals.h.
+        (cd "$api_out" && rm -f pages.html files.html ./*-members.html &&
+            for page in functions*.html namespacemembers*.html globals*.html; do
+                case "$page" in *_8*) ;; *) rm -f "$page" ;; esac
+            done)
         doxysphinx build --doxygen_exe doxygen "$src" "$out" "$api_out" || die "doxysphinx failed"
-        (cd "$api_out" && rm -f index.rst graph_legend.rst annotated.rst files.rst annotated_classes.rst \
-            topics.rst dir_*.rst ./*-members.rst deprecated.rst && sed -i 's/:orphan://' ./*.rst)
+        # The pages with a toctree are doxysphinx's stand-ins for the menus of doxygen's navigation
+        # bar (e.g. annotated_classes, files_files), which is not shown.
+        (cd "$api_out" && rm -f index.rst graph_legend.rst annotated.rst files.rst topics.rst dir_*.rst \
+            ./*-members.rst deprecated.rst && { grep -l -e '^ *\.\. toctree::' ./*.rst || true; } | xargs -r rm -f)
         write_api_index "$api_out"
     fi
 

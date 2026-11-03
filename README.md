@@ -131,8 +131,11 @@ the pages into the site needs (`GENERATE_TREEVIEW = NO`, `DISABLE_INDEX = NO`, `
 the doxyfile are relative to the working directory, i.e. the repository root.
 
 In a Sphinx site, the doxygen pages are wrapped into Sphinx pages by `doxysphinx`, like in the OMNeT++
-documentation, without doxygen's own title and navigation bar, and `api/index` is the class list. Doxygen comments can contain reStructuredText between
-`\rst` and `\endrst`.
+documentation, without doxygen's own title and navigation bar, and `api/index` is the class list. Only the
+overview pages (class hierarchy, class index, namespace list) and the topic pages are in the site navigation,
+under `api/index`; the class, namespace and file pages are reached through the class list and their links, so
+that a large API does not add an entry per class to the navigation of every page. Doxygen comments can contain
+reStructuredText between `\rst` and `\endrst`.
 
 ## PDF
 
