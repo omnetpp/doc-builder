@@ -210,7 +210,7 @@ All paths are relative to the working directory (the repository root), and must 
 | `pdf` | `false` | also build PDFs of the Sphinx project, into the root of the site |
 | `sphinx-args` | | further `sphinx-build` arguments, split at whitespace, without quoting, e.g. `-j auto` |
 | `fail-on-warnings` | `false` | fail if `opp_docgen` or Sphinx (also the PDF build) warn |
-| `image-tag` | `latest` | tag of `ghcr.io/omnetpp/doc-builder` |
+| `image-tag` | the action's version | tag of `ghcr.io/omnetpp/doc-builder`; `latest` if the action is used at a branch or commit |
 | `image` | | image to use instead, as is (`image-tag` does not change it) |
 | `upload-pages-artifact` | `true` | upload the site as the GitHub Pages artifact |
 
@@ -224,9 +224,12 @@ are emptied before each build. A directory that is not empty and was not generat
 
 ## The image
 
-`latest` follows the toolchain of the OMNeT++ documentation, and changes when it is rebuilt. To keep the
-documentation build stable, pin an immutable tag (see the
-[tags](https://github.com/orgs/omnetpp/packages/container/package/doc-builder)) with `image-tag`.
+The image is built from this repository ([`image/`](image/README.md)) and released with the action: by default,
+the action runs in the image of its own version, e.g. `omnetpp/doc-builder@v1` in
+`ghcr.io/omnetpp/doc-builder:v1`, which moves with the `v1` releases like the action. To keep the documentation
+build stable, use a full version of the action (`omnetpp/doc-builder@v1.2.0`), or pin an image tag with
+`image-tag` (see the
+[tags](https://github.com/orgs/omnetpp/packages/container/package/doc-builder)). `latest` is the newest image.
 
 The image is `linux/amd64` only, so the action runs on Linux runners (`ubuntu-latest`), with podman or docker.
 

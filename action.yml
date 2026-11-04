@@ -63,8 +63,10 @@ inputs:
     description: Fail if opp_docgen or Sphinx warn.
     default: 'false'
   image-tag:
-    description: Tag of ghcr.io/omnetpp/doc-builder.
-    default: latest
+    description: >-
+      Tag of ghcr.io/omnetpp/doc-builder. Default is the action's own version (e.g. v1 for
+      omnetpp/doc-builder@v1), or latest if the action is used at a branch or commit.
+    default: ''
   image:
     description: Image to use instead of ghcr.io/omnetpp/doc-builder, as is (image-tag does not change it).
     default: ''
@@ -101,7 +103,15 @@ runs:
         FAIL_ON_WARNINGS: ${{ inputs.fail-on-warnings }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         IMAGE: ${{ inputs.image }}
+        ACTION_REF: ${{ github.action_ref }}
       run: |
+        # github.action_ref is not reliably set in composite actions; the path of the action has the ref as well
+        if [ -z "$IMAGE_TAG" ]; then
+          IMAGE_TAG=latest
+          for ref in "$ACTION_REF" "$(basename "$GITHUB_ACTION_PATH")"; do
+            case "$ref" in v[0-9]*) IMAGE_TAG="$ref"; break ;; esac
+          done
+        fi
         "$GITHUB_ACTION_PATH/doc-builder.sh" \
           --project-dir="$PROJECT_DIR" --output-dir="$OUTPUT_DIR" --title="$TITLE" \
           --sphinx-source="$SPHINX_SOURCE" --ned-dir="$NED_DIR" --ned-format="$NED_FORMAT" \
