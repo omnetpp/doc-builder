@@ -244,6 +244,12 @@ building without `build.sh` requires staging the tarball by hand. `IMAGE=<ref>`
 builds under another name, e.g. a test image that `doc-builder.sh --image <ref>` or
 the documentation build of OMNeT++ (`IMAGE=<ref> doc/src/site/run.sh`) can try.
 
+The `Containerfile` installs the toolchain first (TeX Live, doxygen, pandoc, the
+Python stack from `uv.lock`, the theme's fonts) and checks the PDF build, then adds
+the opp-tools and the extensions, the theme last. A change in `extensions/` or a new
+opp-tools tarball therefore reuses the cached toolchain and takes seconds; only a
+new `uv.lock`, tool version or base image downloads again.
+
 ## Publishing
 
 **Currently from a workstation only** (see below): `doc-builder-image.yml` has no
