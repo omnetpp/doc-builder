@@ -1,18 +1,19 @@
 # doc-builder container image
 
-A self-contained image with the full toolchain to build the OMNeT++ Sphinx
-documentation site (manual, guides, tutorials, articles, the doxygen APIs and the
-`omnetpp.scave` Python API) as HTML and as PDF: doxygen, graphviz, client-side KaTeX
-math for HTML, a version-pinned `pandoc` for the manual LaTeX→RST conversion, and
-the Python Sphinx stack from `doc/src/uv.lock`.
+`ghcr.io/omnetpp/doc-builder`: a self-contained image with the full toolchain to build the documentation sites of
+OMNeT++ (manual, guides, tutorials, articles, the doxygen APIs and the `omnetpp.scave` Python API) and of the
+simulation models built on it (INET, Simu5G, ...), as HTML and as PDF: doxygen, graphviz, client-side KaTeX math for
+HTML, a version-pinned `pandoc` for the OMNeT++ manual's LaTeX→RST conversion, and the Python Sphinx stack of
+[`pyproject.toml`](pyproject.toml) and [`uv.lock`](uv.lock), with the OMNeT++ Sphinx extensions of
+[`../extensions`](../extensions).
 
 It also carries the OMNeT++ command-line tools of the VS Code extension
 (`@omnetpp/opp-tools`: `opp_docgen`, `opp_lint`, `opp_lsp`, `opp_ide_mcp`, run by
 the distribution's `nodejs`), so it can generate NED documentation, e.g.
 `opp_docgen --format=rst -o <out> <project>`.
 
-The Python packages are installed with uv into a venv on `PATH`, so the build runs
-without uv inside the container by passing `PIPRUN=` and `VENVDEP=`.
+The Python packages are installed with uv into a venv on `PATH`, so a build runs
+without uv inside the container (the OMNeT++ docs: `make ... PIPRUN= VENVDEP=`).
 
 For the PDF documents it has TeX Live (Ubuntu's `texlive-latex-recommended`,
 `-latex-extra`, `-fonts-recommended`, `tex-gyre`, `latexmk`), ImageMagick (with its
@@ -29,7 +30,7 @@ own (the image's is not writable for non-root users).
 
 ## The omnetpp_immaterial theme
 
-`omnetpp_immaterial/` is a Sphinx extension on top of `sphinx_immaterial`, the shared look of the OMNeT++ sites
+[`extensions/omnetpp_immaterial`](../extensions/omnetpp_immaterial) is a Sphinx extension on top of `sphinx_immaterial`, the shared look of the OMNeT++ sites
 (INET's inet.omnetpp.org first): denser sidebars with resizable widths, a sticky tab bar whose tabs open their
 sections as menus, the name of the site next to the logo, and a footer crediting OMNeT++. The `Containerfile`
 copies it into the venv, so a project built in the image enables it in its `conf.py`:
@@ -94,7 +95,7 @@ site gives the tab bar, which stays below the header while the tab bar is away.
 
 ## The omnetpp_doxylink extension
 
-`omnetpp_doxylink/` is the Sphinx extension behind the `:cppref:` role of the OMNeT++ site, a fork of
+[`extensions/omnetpp_doxylink`](../extensions/omnetpp_doxylink) is the Sphinx extension behind the `:cppref:` role of the OMNeT++ site, a fork of
 `sphinxcontrib-doxylink`: it defines roles that link C++ symbols to the HTML pages of a doxygen API, looked up in
 doxygen's tag file (`GENERATE_TAGFILE`). Unlike the original, it can leave the symbols of external libraries
 unlinked without a warning. Like `omnetpp_immaterial`, the `Containerfile` copies it into the venv, so a project built
@@ -120,7 +121,7 @@ Its settings:
 
 ## The omnetpp_lexers extension
 
-`omnetpp_lexers/` adds the Pygments lexers of the OMNeT++ file formats to Sphinx as code-block languages: `ned`,
+[`extensions/omnetpp_lexers`](../extensions/omnetpp_lexers) adds the Pygments lexers of the OMNeT++ file formats to Sphinx as code-block languages: `ned`,
 `msg`, `ini` (in place of Pygments' own, also recognizing `include` lines) and `fp` (fingerprint test output).
 The NED reference that `opp_docgen --format=rst` generates has `ned` and `msg` code blocks, which Sphinx only warns
 about without it (and leaves unhighlighted). The `Containerfile` copies it into the venv, so a project built in the
@@ -143,7 +144,7 @@ extensions = [..., 'omnetpp_lexers']
 
 ## The omnetpp_media extension
 
-`omnetpp_media/` adds directives that embed videos and audio in HTML: `video` (looping) and `video_noloop` (also
+[`extensions/omnetpp_media`](../extensions/omnetpp_media) adds directives that embed videos and audio in HTML: `video` (looping) and `video_noloop` (also
 spelled `video_no_loop`) for a local file or a URL, `audio`, and `youtube` and `vimeo` for the id of a video there.
 All take the `width`, `height` and `align` (`left`, `center` or `right`, the default) options, and their content is
 the caption. A local file is resolved relative to the document, like an image, and is published like a `:download:`
@@ -167,7 +168,7 @@ extensions = [..., 'omnetpp_media']
 
 ## The omnetpp_neddoc extension
 
-`omnetpp_neddoc/` works with the NED reference that `opp_docgen --format=rst -o <project>/ned ...` generates into a
+[`extensions/omnetpp_neddoc`](../extensions/omnetpp_neddoc) works with the NED reference that `opp_docgen --format=rst -o <project>/ned ...` generates into a
 Sphinx project. Its `:ned:` and `:msg:` roles link type names to the pages of the reference, by the full name or the
 short one (``:ned:`Source` ``, ``:ned:`sample.Source` ``, ``:ned:`the source <Source>` ``, ``:msg:`Job` ``), from the
 `nedtags.xml` and `msgtags.xml` tag files that `opp_docgen` writes next to the pages; an ambiguous short name links
@@ -204,12 +205,12 @@ with a warning. The pages that `opp_docgen` generates link to those with its `-l
 
 ## Naming and tags
 
-The same references are used by CI and locally:
-
 | Reference | Meaning |
 |-----------|---------|
-| `ghcr.io/omnetpp/doc-builder:latest` | what `deploy-docs.yml` pulls; moves with each rebuild |
-| `ghcr.io/omnetpp/doc-builder:<short-sha>` | immutable; pin a deployment to an exact toolchain by editing the `image:` line |
+| `ghcr.io/omnetpp/doc-builder:latest` | the newest image; what the documentation builds of OMNeT++ and INET pull |
+| `ghcr.io/omnetpp/doc-builder:vX.Y.Z` | the image of a release of this repository, which the action of that release runs in |
+| `ghcr.io/omnetpp/doc-builder:vX` | the image of the newest `vX` release, which `omnetpp/doc-builder@vX` runs in |
+| `ghcr.io/omnetpp/doc-builder:<short-sha>` | immutable; pin a build to an exact toolchain |
 
 The image is `linux/amd64` only — every tool in it is fetched as an x86_64 binary,
 so the `Containerfile` and `build.sh` pin the platform explicitly.
@@ -217,72 +218,28 @@ so the `Containerfile` and `build.sh` pin the platform explicitly.
 ## Build locally
 
 `@omnetpp/opp-tools` is not published to npm yet, so the image bundles a locally
-built npm tarball. Build it first in the omnetpp-vscode checkout (hosted in-tree as
-`vscode/`):
+built npm tarball, from a checkout of omnetpp-vscode that `vscode` in the root of
+this repository links to (it is in omnetpp-dev as `vscode/`):
 
 ```bash
-(cd vscode && bun run package:cli)         # -> vscode/build/omnetpp-opp-tools-<ver>.tgz
-doc/src/site/doc-builder/build.sh          # -> ghcr.io/omnetpp/doc-builder:latest
+ln -s ../omnetpp-dev/vscode vscode          # once
+(cd vscode && bun run package:cli)          # -> vscode/build/omnetpp-opp-tools-<ver>.tgz
+image/build.sh                              # -> ghcr.io/omnetpp/doc-builder:latest
 ```
 
 `build.sh` takes the single tarball in `vscode/build/` (set `OPP_TOOLS_TGZ=<path>`
-to use another one), stages it as `doc/src/site/doc-builder/opp-tools.tgz`
-(gitignored, removed afterwards) for the `Containerfile` to bind-mount, and records
-its version and the vscode commit in the image labels:
+to use another one), stages it as `image/opp-tools.tgz` (gitignored, removed
+afterwards) for the `Containerfile` to bind-mount, and records its version and the
+vscode commit in the image labels:
 
 ```bash
 podman inspect -f '{{json .Labels}}' ghcr.io/omnetpp/doc-builder:latest
 ```
 
-The build context is `doc/src` (it holds `pyproject.toml`/`uv.lock`); building
-without `build.sh` requires staging the tarball by hand.
-
-## Build the docs with it
-
-```bash
-doc/src/site/doc-builder/run.sh            # builds ci-html -> doc/src/out
-VERSION=6.x doc/src/site/doc-builder/run.sh
-```
-
-`run.sh` bind-mounts the repository and runs
-`make -C doc/src ci-html PIPRUN= VENVDEP=` inside the container.
-
-It takes any make target, e.g. the PDFs:
-
-```bash
-doc/src/site/doc-builder/run.sh do-guides-pdf
-doc/src/site/doc-builder/run.sh do-manual-pdf
-```
-
-They land in `doc/` (`UserGuide.pdf`, `SimulationManual.pdf`, …).
-
-## CI usage
-
-`.github/workflows/deploy-docs.yml` already runs its build job inside this image
-(its deploy job is a plain runner — it only calls the Pages API):
-
-```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    container:
-      image: ghcr.io/omnetpp/doc-builder:latest
-      credentials:                    # needed only while the package is private
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - run: doc/src/site/deploy/build-all.sh _site
-      ...
-```
-
-`build-version.sh` auto-detects the image's global Sphinx toolchain and runs
-`make ci-html` with uv bypassed (`PIPRUN= VENVDEP=`), so no extra configuration
-is needed.
+The build context is the root of this repository (`image/` and `extensions/`);
+building without `build.sh` requires staging the tarball by hand. `IMAGE=<ref>`
+builds under another name, e.g. a test image that `doc-builder.sh --image <ref>` or
+the documentation build of OMNeT++ (`IMAGE=<ref> doc/src/site/run.sh`) can try.
 
 ## Publishing
 
@@ -291,22 +248,24 @@ access to the locally built opp-tools tarball, so it deliberately fails in its
 first step until the `Containerfile` fetches a published opp-tools version.
 
 Once it is re-enabled, use `.github/workflows/doc-builder-image.yml`: **Actions →
-Build doc-builder image → Run workflow**. It publishes both the `:latest` and `:<short-sha>` tags and
-needs no personal access token. It is manual on purpose — republishing `:latest`
-changes the toolchain under every subsequent deploy — so run it after changing the
-`Containerfile`, `pyproject.toml` or `uv.lock`, and not otherwise.
+Build doc-builder image → Run workflow**. It needs no personal access token. It is
+manual on purpose — republishing `:latest` changes the toolchain under every
+subsequent documentation build — so run it after changing the image, and not
+otherwise.
 
 To publish from a workstation instead:
 
 ```bash
 echo "$GHCR_TOKEN" | podman login ghcr.io -u <your-user> --password-stdin
-doc/src/site/doc-builder/build.sh --push     # pushes :latest and :<short-sha>
+image/build.sh --push       # pushes :latest, :<short-sha>, and :vX.Y.Z and :vX for a release tag
 ```
 
-Both paths stamp an `org.opencontainers.image.source` label naming the publishing
-repository — the workflow from `github.repository`, `build.sh` from the `origin`
-remote. That label is what makes GHCR link the package to the repository, which in
-turn lets the build job's `GITHUB_TOKEN` pull it while the package is private.
+Both publish `:latest` and `:<short-sha>`, and for each release tag `vX.Y.Z` on the
+commit `:vX.Y.Z` and `:vX`, so publish the image of a release from its tagged
+commit, after tagging it. Both stamp an `org.opencontainers.image.source` label
+naming the publishing repository — the workflow from `github.repository`,
+`build.sh` from the `origin` remote. That label is what makes GHCR link the package
+to the repository.
 
 ## Toolchain pins
 
@@ -315,32 +274,35 @@ is the single source of truth, nothing outside it pins these:
 
 | Build arg | Default | Note |
 |-----------|---------|------|
-| `PANDOC_VERSION` | 3.10 | drives the manual LaTeX→RST conversion; the converter is version-sensitive |
+| `PANDOC_VERSION` | 3.10 | drives the OMNeT++ manual's LaTeX→RST conversion; the converter is version-sensitive |
 | `DOXYGEN_VERSION` | 1.14.0 | newest release doxysphinx's frozen LibSass scoper can still parse |
-| `UV_VERSION` | 0.11.8 | build-time only; installs the Sphinx stack from `uv.lock` |
+| `UV_VERSION` | 0.13.1 | build-time only; installs the Sphinx stack from `uv.lock` |
 
 Override one for a test build with `podman build --build-arg PANDOC_VERSION=…`.
 
+The Python packages are pinned by `uv.lock`: change `pyproject.toml` and run
+`uv lock` in `image/` to update them.
+
 TeX Live, ImageMagick and librsvg are Ubuntu packages, fixed by the Ubuntu release
-in the `FROM` line rather than by a build arg. The build runs a PDF smoke check (the Simulation Manual's real preamble, and the tiny Sphinx project in
-`pdf-smoke/` with GIF and SVG images, with both the OMNeT++ and Sphinx's default
-fonts), so a missing LaTeX package fails the image build instead of a later PDF
-build.
+in the `FROM` line rather than by a build arg. The build runs a PDF smoke check (a
+copy of the OMNeT++ Simulation Manual's preamble, `smoke/manual-preamble.tex`, and
+the tiny Sphinx project in `smoke/pdf/` with GIF and SVG images, with both the
+OMNeT++ and Sphinx's default fonts), so a missing LaTeX package fails the image
+build instead of a later PDF build. Renew the preamble copy when the manual needs
+new LaTeX packages.
 
 Exception: opp-tools is whatever tarball `build.sh` bundled; its version is in the
 `org.omnetpp.opp-tools.version` (and `.commit`) image labels.
 
-## Using it as a base image
+## Using it
 
-Model libraries (e.g. INET) can build their documentation site on top of this
-image: derive from it, add their own Python/Sphinx requirements, and generate the
-NED reference with `opp_docgen` (`--format=rst` or `markdown` to embed it in a
-Sphinx site, `html-material`/`html-readthedocs` for a standalone subtree).
+- A model project builds its documentation site with the [action](../README.md), which
+  runs in this image.
+- OMNeT++ builds its documentation in it (omnetpp-dev `doc/src/site/run.sh` and `deploy-docs.yml`), and so does
+  INET (its `doc/src/build`).
+- Any other build can run in it or derive from it, and generate the NED reference with `opp_docgen`
+  (`--format=rst` to embed it in a Sphinx site, `html-material`/`html-readthedocs` for a standalone subtree):
 
 ```dockerfile
-FROM ghcr.io/omnetpp/doc-builder:<short-sha>
+FROM ghcr.io/omnetpp/doc-builder:v1
 ```
-
-A workflow in another repository can pull the image while the package is private
-only if the package grants that repository read access (package settings →
-Manage Actions access).

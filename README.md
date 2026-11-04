@@ -1,6 +1,15 @@
-# doc-builder
+# OMNeT++ doc-builder
 
-Builds the documentation website of an OMNeT++ model project, ready for GitHub Pages, in the OMNeT++
+The toolchain that builds the documentation sites of [OMNeT++](https://omnetpp.org) and of the simulation models
+built on it:
+
+| Part | What it is |
+|------|------------|
+| [`action.yml`](action.yml) | A GitHub Action (this page) that builds the documentation website of a model project for GitHub Pages in the image: the NED reference, optionally a Sphinx site, the C++ API (doxygen) and PDFs |
+| [`image/`](image/README.md) | The `ghcr.io/omnetpp/doc-builder` container image: Sphinx, doxygen, `opp_docgen`, TeX Live and the rest of the toolchain, with the extensions below |
+| [`extensions/`](extensions) | The OMNeT++ Sphinx extensions in the image: the look of the OMNeT++ sites (`omnetpp_immaterial`), links to the NED reference (`omnetpp_neddoc`) and to the C++ API (`omnetpp_doxylink`), NED/MSG/ini highlighting (`omnetpp_lexers`), video and audio (`omnetpp_media`); described in the image's README |
+
+The action builds the documentation website of an OMNeT++ model project, ready for GitHub Pages, in the OMNeT++
 doc-builder image (`ghcr.io/omnetpp/doc-builder`, the toolchain of [docs.omnetpp.org](https://docs.omnetpp.org)
 and [inet.omnetpp.org](https://inet.omnetpp.org)):
 
@@ -35,7 +44,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: omnetpp/actions@v1
+      - uses: omnetpp/doc-builder@v1
 
   deploy:
     needs: build
@@ -66,7 +75,7 @@ With `sphinx-source`, the site is built from your Sphinx project, and the NED re
 become pages of it:
 
 ```yaml
-      - uses: omnetpp/actions@v1
+      - uses: omnetpp/doc-builder@v1
         with:
           sphinx-source: doc
           doxygen: true
@@ -170,7 +179,7 @@ uses. They are not documented, but linked to, if you tell where their documentat
           repository: inet-framework/inet
           ref: v4.6.0
           path: inet
-      - uses: omnetpp/actions@v1
+      - uses: omnetpp/doc-builder@v1
         with:
           ned-path: inet/src
           external-docs: inet=https://inet.omnetpp.org/docs/latest/api/types
@@ -254,7 +263,7 @@ jobs:
 `ENGINE=docker`). From the repository root of your model, with a checkout of this repository next to it:
 
 ```bash
-../actions/doc-builder.sh --sphinx-source doc --doxygen
+../doc-builder/doc-builder.sh --sphinx-source doc --doxygen
 ```
 
 It takes the inputs as options (`--help` lists them), and builds into `_site`, which you can open in a browser
@@ -264,20 +273,28 @@ the tools directly.
 
 ## Versions
 
-The action follows the releases of the repository, tagged `vMAJOR.MINOR.PATCH`. The major tag (`v1`) moves to the
-latest release with that major version, and is what a workflow normally uses: it gets fixes and new features,
-but no changes that break existing workflows. Those come with a new major version. Use a full version or a
-commit to pin an exact one.
+The image and the action share the releases of the repository, tagged `vMAJOR.MINOR.PATCH`. The major tag (`v1`)
+moves to the latest release with that major version, and is what a workflow normally uses: it gets fixes and new
+features, but no changes that break existing workflows. Those come with a new major version. Use a full version or
+a commit to pin an exact one.
+
+Each release is also an image tag (`:v1.2.0`, and the moving `:v1`), and the action runs in the image of its own
+version by default. A release is therefore: tag the commit, publish the image from it (`image/build.sh --push`, see
+[Publishing](image/README.md#publishing)), then move the major tag.
 
 ## Development
 
-The action is `action.yml` at the root of the repository. Its logic is in `doc-builder.sh` beside it, which
-also runs locally, so that the action can be tried without pushing it.
-
-[`test/`](test) holds a sample model project, which [`.github/workflows/test.yml`](.github/workflows/test.yml)
-builds with the action on every push and weekly.
+- The image is built with [`image/build.sh`](image/build.sh) from the root of this repository; `vscode` there is a
+  symlink to a checkout of omnetpp-vscode, whose `opp_docgen` the image bundles (see
+  [Build locally](image/README.md#build-locally)).
+- The action is `action.yml` at the root of the repository. Its logic is in `doc-builder.sh` beside it, which also
+  runs locally, so that it can be tried without pushing it, also with a locally built image (`--image`).
+- [`test/`](test) holds a sample model project, which [`.github/workflows/test.yml`](.github/workflows/test.yml)
+  builds with the action on every push and weekly.
 
 ## License
 
 [MIT](LICENSE). `doxygen/doxygen-awesome.css` is
 [doxygen-awesome-css](https://github.com/jothepro/doxygen-awesome-css), MIT-licensed by jothepro.
+`extensions/omnetpp_doxylink` is a fork of [sphinxcontrib-doxylink](https://github.com/sphinx-contrib/doxylink),
+under that project's license.

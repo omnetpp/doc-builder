@@ -11,7 +11,7 @@ extensions = [
 html_theme = 'sphinx_immaterial'
 html_title = project
 html_theme_options = {
-    'repo_url': 'https://github.com/omnetpp/actions',
+    'repo_url': 'https://github.com/omnetpp/doc-builder',
 }
 
 # The doc-builder action generates the C++ API into api/, with its doxygen tag file
