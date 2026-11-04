@@ -1,13 +1,21 @@
-"""Marks the PNG images that have a transparent background with the transparent-image class.
+"""Marks the images that are drawn for a light page, for the dark scheme (static/omnetpp-immaterial.css).
 
-Charts, diagrams and screenshots are drawn for a light page, so in the dark scheme they need a light background of
-their own (static/omnetpp-immaterial.css). An image counts as transparent if a corner of its first row is: decoding
-only that row keeps the check cheap, and needs no image library. An image up to ICON_WIDTH pixels wide (e.g. an icon
-in a table) gets the transparent-icon class instead, for a background without padding, which keeps it its size.
+A PNG image with a transparent background gets the transparent-image class, for a light background of its own. It
+counts as transparent if a corner of its first row is: decoding only that row keeps the check cheap, and needs no
+image library. An image up to ICON_WIDTH pixels wide (e.g. an icon in a table) gets the transparent-icon class
+instead, for a background without padding, which keeps it its size.
+
+An SVG image in black, white and grays only (e.g. a diagram of modules) gets the adaptive-image class: inverted in the
+dark scheme, it is light on the dark page like the text. One with colors or a bitmap in it (e.g. a chart, or the look
+of a canvas figure) would show them wrong inverted, so it gets transparent-image, unless it paints a background of its
+own. An image that already has one of these classes (e.g. from the :class: option of its figure) is left as it is.
 """
 
+import colorsys
 import os
+import re
 import struct
+import xml.etree.ElementTree as ET
 import zlib
 
 from docutils import nodes
@@ -15,6 +23,13 @@ from docutils import nodes
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
 ICON_WIDTH = 32
+CLASSES = ('transparent-image', 'transparent-icon', 'adaptive-image')
+# Hue counts from this saturation up: antialiasing and near-grays stay below it.
+MIN_SATURATION = 0.25
+PAINT_PROPERTIES = ('fill', 'stroke', 'stop-color', 'flood-color', 'lighting-color', 'color')
+GRAY_NAMES = {'none', 'transparent', 'currentcolor', 'inherit', 'black', 'white', 'gray', 'grey', 'silver',
+              'darkgray', 'darkgrey', 'dimgray', 'dimgrey', 'lightgray', 'lightgrey', 'gainsboro', 'whitesmoke'}
+SHAPES = ('rect', 'polygon', 'path', 'circle', 'ellipse', 'line', 'polyline', 'text', 'image', 'use')
 
 
 def png_chunks(data):
@@ -74,18 +89,109 @@ def transparent_width(path):
         return None
 
 
+def is_colored(value):
+    value = value.strip().lower()
+    if value.startswith('url('):
+        return False
+    m = re.fullmatch(r'#([0-9a-f]{3}|[0-9a-f]{6})', value)
+    if m:
+        digits = m.group(1)
+        if len(digits) == 3:
+            digits = ''.join(c * 2 for c in digits)
+        rgb = [int(digits[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    else:
+        m = re.fullmatch(r'rgba?\(([^)]*)\)', value)
+        if not m:
+            return value not in GRAY_NAMES
+        parts = [p.strip() for p in m.group(1).replace('/', ',').split(',')][:3]
+        rgb = [float(p[:-1]) / 100 if p.endswith('%') else float(p) / 255 for p in parts]
+    return colorsys.rgb_to_hsv(*rgb)[1] >= MIN_SATURATION
+
+
+def paints(element):
+    """The colors that element paints with, from its attributes and its style."""
+    values = [element.get(name) for name in PAINT_PROPERTIES]
+    for declaration in (element.get('style') or '').split(';'):
+        name, _, value = declaration.partition(':')
+        if name.strip() in PAINT_PROPERTIES:
+            values.append(value)
+    return [v for v in values if v]
+
+
+def length(value):
+    m = re.match(r'\s*([\d.]+)', value or '')
+    return float(m.group(1)) if m else None
+
+
+def paints_background(root, element):
+    """Whether element, the first shape that root draws, is an opaque rectangle under all of it."""
+    tag = element.tag.rpartition('}')[2]
+    fill = element.get('fill', 'black')
+    for declaration in (element.get('style') or '').split(';'):
+        name, _, value = declaration.partition(':')
+        if name.strip() == 'fill':
+            fill = value
+    if fill.strip().lower() in ('none', 'transparent'):
+        return False
+    if tag == 'polygon':
+        # graphviz draws its background as a polygon around the whole graph
+        return True
+    if tag != 'rect':
+        return False
+    box = (root.get('viewBox') or '').replace(',', ' ').split()
+    if len(box) == 4:
+        width, height = float(box[2]), float(box[3])
+    else:
+        width, height = length(root.get('width')), length(root.get('height'))
+    return bool(width and height and (length(element.get('width')) or 0) >= 0.98 * width
+                and (length(element.get('height')) or 0) >= 0.98 * height)
+
+
+def svg_class(path):
+    """The class for the SVG image at path, or None if it needs none or cannot be read."""
+    try:
+        root = ET.parse(path).getroot()
+    except (ET.ParseError, OSError):
+        # A broken image must not fail the build.
+        return None
+    colored = bitmap = False
+    first_shape = None
+    for element in root.iter():
+        tag = element.tag.rpartition('}')[2] if isinstance(element.tag, str) else ''
+        if tag == 'image':
+            bitmap = True
+        if tag == 'style' and element.text:
+            colored |= any(is_colored(v) for v in re.findall(r'#[0-9a-fA-F]{3,6}\b|rgba?\([^)]*\)', element.text))
+        colored |= any(is_colored(v) for v in paints(element))
+        if first_shape is None and tag in SHAPES:
+            first_shape = element
+    if not colored and not bitmap:
+        return 'adaptive-image'
+    if first_shape is not None and paints_background(root, first_shape):
+        return None
+    return 'transparent-image'
+
+
 def mark_transparent_images(app, doctree, docname):
     for image in doctree.findall(nodes.image):
-        # An image given as name.* is unresolved here; the HTML builder takes its PNG file unless it has an SVG one.
-        uri, candidates = image['uri'], image.get('candidates', {})
-        if uri.endswith('.*') and 'image/svg+xml' not in candidates:
-            uri = candidates.get('image/png', uri)
-        path = os.path.join(app.srcdir, uri)
-        if not uri.lower().endswith('.png') or not os.path.isfile(path):
+        if any(c in CLASSES for c in image['classes']):
             continue
-        width = transparent_width(path)
-        if width is not None:
-            image['classes'].append('transparent-icon' if width <= ICON_WIDTH else 'transparent-image')
+        # An image given as name.* is unresolved here; the HTML builder takes its SVG file, else its PNG one.
+        uri, candidates = image['uri'], image.get('candidates', {})
+        if uri.endswith('.*'):
+            uri = candidates.get('image/svg+xml', candidates.get('image/png', uri))
+        path = os.path.join(app.srcdir, uri)
+        if not os.path.isfile(path):
+            continue
+        if uri.lower().endswith('.svg'):
+            cls = svg_class(path)
+        elif uri.lower().endswith('.png'):
+            width = transparent_width(path)
+            cls = None if width is None else 'transparent-icon' if width <= ICON_WIDTH else 'transparent-image'
+        else:
+            continue
+        if cls:
+            image['classes'].append(cls)
 
 
 def setup(app):

@@ -83,7 +83,10 @@ tree of a root by handling the `omnetpp-nav-tree` event (see `omnetpp_immaterial
 Charts, diagrams and screenshots with a transparent background are drawn for a light page, so in the dark scheme a
 PNG image whose top left or top right pixel is transparent gets a white, padded background (the `transparent-image`
 class); one up to 32 pixels wide, e.g. an icon in a table, gets it without the padding (`transparent-icon`), keeping
-its size. The check reads only the first row of the image. SVG images are left as they are.
+its size. The check reads only the first row of the image. An SVG image in black, white and grays only, e.g. a
+diagram of modules, is inverted instead (`adaptive-image`), which makes it light on the dark page like the text; one
+with colors or a bitmap in it, e.g. a chart, gets the white background unless it paints one of its own. A figure
+whose `:class:` option names one of these classes keeps it.
 
 It also patches the script of `sphinx_immaterial` 0.13.9 after the build, fixing two of its bugs: the site search,
 which finds nothing with Sphinx 9 ([sphinx-immaterial#485](https://github.com/jbms/sphinx-immaterial/issues/485)),

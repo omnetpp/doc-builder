@@ -693,3 +693,9 @@ html {
   --invariant-color: color-mix(in srgb, var(--invariant-color-dark) 12%, transparent);
   --invariant-color-darker: var(--md-typeset-color);
 }
+
+/* Grayscale SVG diagrams (images.py) inverted: black becomes about the color of the text and white about that of
+   the page; the hue rotation keeps what little color antialiasing leaves. */
+[data-md-color-scheme=slate] .md-typeset img.adaptive-image {
+  filter: invert(0.88) hue-rotate(180deg);
+}

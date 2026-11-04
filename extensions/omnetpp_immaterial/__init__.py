@@ -23,8 +23,9 @@ site search works with the Sphinx of the image, and the instant navigation with 
 and to the pages that have them (see fix_bundle). A page with a ':no-copy:' field at its top gets no copy buttons on its code blocks.
 A page outside every toctree, e.g. a type page of the NED reference, still gets its table of contents (see
 add_local_toc). The pages of a large generated reference (e.g. a NED reference or a C++ API) are left out of the
-navigation that every page carries, and get it from a tree loaded as JSON instead (see navtree). The PNG images with
-a transparent background, drawn for a light page, get a light background in the dark scheme (see images).
+navigation that every page carries, and get it from a tree loaded as JSON instead (see navtree). The images drawn for
+a light page are inverted in the dark scheme if they are grayscale SVG, and get a light background otherwise (see
+images).
 
 It is part of the doc-builder image, for every OMNeT++ site: a site enables it by listing 'omnetpp_immaterial' in its
 extensions, with html_theme = 'sphinx_immaterial'.
