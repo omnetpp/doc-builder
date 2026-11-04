@@ -111,6 +111,12 @@ doxylink = {'cppref': ('api/tagfile.xml', 'api/')}
 
 `omnetpp_neddoc` finds the NED reference in `ned` (its `neddoc_dir` setting; change it together with `ned-dir`).
 
+The NED reference and the C++ API have a page per type, too many for the navigation that Sphinx puts into every
+page. `omnetpp_immaterial` shows them in the sidebar as trees that the browser loads when the reader opens them:
+the NED reference by packages, kinds of types and files, the C++ API by namespaces and classes. It
+needs no setting: it finds the NED reference through `omnetpp_neddoc`, and the C++ API by the `tagfile.xml` next to
+`api/index`. The trees appear under the entries of `ned/index` and `api/index` in your toctree.
+
 [`test/sample-model/doc`](test/sample-model/doc) is a complete example. Pages of the site refer to
 
 - NED and MSG types with `omnetpp_neddoc`, by their short or full names: `` :ned:`Source` ``,
@@ -133,9 +139,9 @@ the doxyfile are relative to the working directory, i.e. the repository root.
 In a Sphinx site, the doxygen pages are wrapped into Sphinx pages by `doxysphinx`, like in the OMNeT++
 documentation, without doxygen's own title and navigation bar, and `api/index` is the class list. Only the
 overview pages (class hierarchy, class index, namespace list) and the topic pages are in the site navigation,
-under `api/index`; the class, namespace and file pages are reached through the class list and their links, so
-that a large API does not add an entry per class to the navigation of every page. Doxygen comments can contain
-reStructuredText between `\rst` and `\endrst`.
+under `api/index`; the class, namespace and file pages are not, so that a large API does not add an entry per
+class to the navigation of every page. The sidebar's tree of the C++ API (see [A Sphinx site](#a-sphinx-site))
+lists them instead. Doxygen comments can contain reStructuredText between `\rst` and `\endrst`.
 
 ## PDF
 
