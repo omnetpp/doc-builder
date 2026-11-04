@@ -617,3 +617,79 @@ html {
 [data-md-color-scheme=slate] .md-typeset img:is(.transparent-image, .transparent-icon) {
   background-color: #fff;
 }
+
+/* The doxygen pages that doxysphinx inlines (C++ API) bring the light palette of doxygen and doxygen-awesome, whose
+   dark one follows the operating system or doxygen's own toggle, never the scheme of the site. Their colors are the
+   theme's here, and the tints translucent, which suits both schemes. */
+[data-md-color-scheme] .doxygen-content {
+  --page-background-color: var(--md-default-bg-color);
+  --page-foreground-color: var(--md-typeset-color);
+  --page-secondary-foreground-color: var(--md-default-fg-color--light);
+  --page-link-color: var(--md-typeset-a-color);
+  --page-visited-link-color: var(--md-typeset-a-color);
+  --primary-color: var(--md-typeset-a-color);
+  --primary-dark-color: var(--md-typeset-a-color);
+  --primary-light-color: var(--md-default-fg-color--lighter);
+  --separator-color: var(--md-default-fg-color--lightest);
+  --group-header-color: var(--md-default-fg-color);
+  --group-header-separator-color: var(--md-default-fg-color--lightest);
+  --inherit-header-color: var(--md-default-fg-color--light);
+  --odd-color: var(--md-typeset-table-color--light);
+  --index-odd-item-bg-color: var(--md-typeset-table-color--light);
+  --index-even-item-bg-color: transparent;
+  --box-shadow: var(--md-shadow-z1);
+  --header-background: transparent;
+  --side-nav-background: transparent;
+  --menu-selected-background: var(--md-default-fg-color--lightest);
+  --tablehead-background: var(--md-typeset-table-color);
+  --tablehead-foreground: var(--md-typeset-color);
+  --blockquote-background: var(--md-typeset-table-color--light);
+  --blockquote-foreground: var(--md-default-fg-color--light);
+
+  --code-background: var(--md-code-bg-color);
+  --code-foreground: var(--md-code-fg-color);
+  --fragment-background: var(--md-code-bg-color);
+  --fragment-foreground: var(--md-code-fg-color);
+  --fragment-keyword: var(--md-code-hl-keyword-color);
+  --fragment-keywordtype: var(--md-code-hl-constant-color);
+  --fragment-keywordflow: var(--md-code-hl-keyword-color);
+  --fragment-token: var(--md-code-hl-string-color);
+  --fragment-comment: var(--md-code-hl-comment-color);
+  --fragment-link: var(--md-typeset-a-color);
+  --fragment-preprocessor: var(--md-code-hl-special-color);
+  --fragment-linenumber-color: var(--md-default-fg-color--light);
+  --fragment-linenumber-background: var(--md-code-bg-color);
+  --fragment-linenumber-border: var(--md-default-fg-color--lightest);
+
+  --memdecl-background-color: var(--md-code-bg-color);
+  --memdecl-foreground-color: var(--md-default-fg-color--light);
+  --memdecl-border-color: var(--md-default-fg-color--lightest);
+  --memdecl-template-color: var(--md-default-fg-color--light);
+  --memdef-border-color: var(--md-default-fg-color--lightest);
+  --memdef-title-background-color: var(--md-code-bg-color);
+  --memdef-proto-background-color: var(--md-code-bg-color);
+  --memdef-proto-text-color: var(--md-code-fg-color);
+  --memdef-param-name-color: var(--md-code-hl-variable-color);
+  --memdef-template-color: var(--md-default-fg-color--light);
+
+  --tooltip-foreground-color: var(--md-default-fg-color);
+  --tooltip-background-color: var(--md-default-bg-color);
+  --tooltip-arrow-background-color: var(--md-default-bg-color);
+  --tooltip-border-color: var(--md-default-fg-color--lighter);
+  --tooltip-doc-color: var(--md-default-fg-color--light);
+  --tooltip-declaration-color: var(--md-code-hl-string-color);
+  --tooltip-link-color: var(--md-typeset-a-color);
+
+  --note-color: color-mix(in srgb, var(--note-color-dark) 12%, transparent);
+  --note-color-darker: var(--md-typeset-color);
+  --warning-color: color-mix(in srgb, var(--warning-color-dark) 12%, transparent);
+  --warning-color-darker: var(--md-typeset-color);
+  --todo-color: color-mix(in srgb, var(--todo-color-dark) 12%, transparent);
+  --todo-color-darker: var(--md-typeset-color);
+  --deprecated-color: color-mix(in srgb, var(--deprecated-color-dark) 12%, transparent);
+  --deprecated-color-darker: var(--md-typeset-color);
+  --bug-color: color-mix(in srgb, var(--bug-color-dark) 12%, transparent);
+  --bug-color-darker: var(--md-typeset-color);
+  --invariant-color: color-mix(in srgb, var(--invariant-color-dark) 12%, transparent);
+  --invariant-color-darker: var(--md-typeset-color);
+}
