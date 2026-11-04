@@ -10,10 +10,12 @@
 #                        one in <repo>/vscode/build/, made by `bun run package:cli`;
 #                        <repo>/vscode is a symlink to a checkout of omnetpp-vscode)
 #
-# --push additionally tags the image with the current commit's short sha (:<sha>),
-# and, for each release tag vX.Y.Z on the commit, with :vX.Y.Z and :vX, so that the
-# action of a release runs in the image of that release. It refuses to
-# run when the files of the image have uncommitted changes.
+# --push publishes $IMAGE, and the image under the name of the branch it is built
+# from (:v1 from the v1 branch, which omnetpp/doc-builder@v1 runs in) and of each
+# release tag vX.Y.Z on the commit (:vX.Y.Z, which the action of that release runs
+# in). The branch is the checked-out one, or, with a detached HEAD (e.g. in a jj
+# repository), each branch at HEAD. It refuses to run when the files of the image
+# have uncommitted changes.
 # Log in first:  echo "$GHCR_TOKEN" | podman login ghcr.io -u <user> --password-stdin
 #
 set -euo pipefail
@@ -97,9 +99,13 @@ echo "Bundling opp-tools $OPP_TOOLS_VERSION${OPP_TOOLS_COMMIT:+ (vscode $OPP_TOO
 "$ENGINE" build --platform linux/amd64 -t "$IMAGE" "${label_args[@]}" -f "$HERE/Containerfile" "$REPO"
 
 if [ "$PUSH" = "1" ]; then
-    refs=("$IMAGE" "${IMAGE%:*}:$(git -C "$REPO" rev-parse --short HEAD)")
-    for tag in $(git -C "$REPO" tag --points-at HEAD 'v[0-9]*'); do
-        refs+=("${IMAGE%:*}:$tag" "${IMAGE%:*}:${tag%%.*}")
+    branches="$(git -C "$REPO" symbolic-ref -q --short HEAD \
+        || git -C "$REPO" branch --points-at HEAD --format='%(refname:short)' | grep -v '^(')" || true
+    [ -n "$branches" ] || echo "warning: HEAD is on no branch; the image gets no branch tag" >&2
+    refs=("$IMAGE")
+    # A branch name may have slashes, which an image tag may not
+    for name in $branches $(git -C "$REPO" tag --points-at HEAD 'v[0-9]*'); do
+        refs+=("${IMAGE%:*}:${name//\//-}")
     done
     echo "Pushing: ${refs[*]}"
     for ref in "${refs[@]}"; do

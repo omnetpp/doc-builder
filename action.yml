@@ -65,7 +65,7 @@ inputs:
   image-tag:
     description: >-
       Tag of ghcr.io/omnetpp/doc-builder. Default is the action's own version (e.g. v1 for
-      omnetpp/doc-builder@v1), or latest if the action is used at a branch or commit.
+      omnetpp/doc-builder@v1), or latest if the action is used at another branch or a commit.
     default: ''
   image:
     description: Image to use instead of ghcr.io/omnetpp/doc-builder, as is (image-tag does not change it).

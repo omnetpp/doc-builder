@@ -12,8 +12,9 @@
 #
 # Every build publishes these references:
 #   :latest           - what the documentation builds pull by default
-#   :<short-sha>      - immutable, for pinning a build to an exact toolchain
-#   :vX.Y.Z and :vX   - for a release tag on the commit; the action of
+#   :<branch>         - the branch it is run on, e.g. :v1, which
+#                       omnetpp/doc-builder@v1 runs in
+#   :vX.Y.Z           - for a release tag on the commit; the action of
 #                       that release runs in it
 name: Build doc-builder image
 
@@ -50,10 +51,11 @@ jobs:
           {
             echo 'list<<EOF'
             echo "ghcr.io/omnetpp/doc-builder:latest"
-            echo "ghcr.io/omnetpp/doc-builder:$(git rev-parse --short HEAD)"
+            if [ "$GITHUB_REF_TYPE" = branch ]; then
+              echo "ghcr.io/omnetpp/doc-builder:${GITHUB_REF_NAME//\//-}"
+            fi
             for tag in $(git tag --points-at HEAD 'v[0-9]*'); do
               echo "ghcr.io/omnetpp/doc-builder:$tag"
-              echo "ghcr.io/omnetpp/doc-builder:${tag%%.*}"
             done
             echo EOF
           } >> "$GITHUB_OUTPUT"

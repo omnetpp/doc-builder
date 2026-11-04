@@ -219,7 +219,7 @@ All paths are relative to the working directory (the repository root), and must 
 | `pdf` | `false` | also build PDFs of the Sphinx project, into the root of the site |
 | `sphinx-args` | | further `sphinx-build` arguments, split at whitespace, without quoting, e.g. `-j auto` |
 | `fail-on-warnings` | `false` | fail if `opp_docgen` or Sphinx (also the PDF build) warn |
-| `image-tag` | the action's version | tag of `ghcr.io/omnetpp/doc-builder`; `latest` if the action is used at a branch or commit |
+| `image-tag` | the action's version | tag of `ghcr.io/omnetpp/doc-builder`; `latest` if the action is used at another branch or a commit |
 | `image` | | image to use instead, as is (`image-tag` does not change it) |
 | `upload-pages-artifact` | `true` | upload the site as the GitHub Pages artifact |
 
@@ -235,7 +235,7 @@ are emptied before each build. A directory that is not empty and was not generat
 
 The image is built from this repository ([`image/`](image/README.md)) and released with the action: by default,
 the action runs in the image of its own version, e.g. `omnetpp/doc-builder@v1` in
-`ghcr.io/omnetpp/doc-builder:v1`, which moves with the `v1` releases like the action. To keep the documentation
+`ghcr.io/omnetpp/doc-builder:v1`, which is built from the `v1` branch, like the action. To keep the documentation
 build stable, use a full version of the action (`omnetpp/doc-builder@v1.2.0`), or pin an image tag with
 `image-tag` (see the
 [tags](https://github.com/orgs/omnetpp/packages/container/package/doc-builder)). `latest` is the newest image.
@@ -273,14 +273,14 @@ the tools directly.
 
 ## Versions
 
-The image and the action share the releases of the repository, tagged `vMAJOR.MINOR.PATCH`. The major tag (`v1`)
-moves to the latest release with that major version, and is what a workflow normally uses: it gets fixes and new
-features, but no changes that break existing workflows. Those come with a new major version. Use a full version or
-a commit to pin an exact one.
+The image and the action share the versions of the repository. A major version is a branch (`v1`), and is what a
+workflow normally uses: it gets fixes and new features, but no changes that break existing workflows. Those come
+with a new major version. Releases are tags `vMAJOR.MINOR.PATCH` on it; use one, or a commit, to pin an exact
+version.
 
-Each release is also an image tag (`:v1.2.0`, and the moving `:v1`), and the action runs in the image of its own
-version by default. A release is therefore: tag the commit, publish the image from it (`image/build.sh --push`, see
-[Publishing](image/README.md#publishing)), then move the major tag.
+Each version is also an image tag: the image built from the `v1` branch is `:v1`, that of a release `:v1.2.0`, and
+the action runs in the image of its own version by default. So after changing the branch, publish its image from
+it (`image/build.sh --push`, see [Publishing](image/README.md#publishing)); for a release, tag the commit first.
 
 ## Development
 

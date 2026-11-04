@@ -212,8 +212,7 @@ with a warning. The pages that `opp_docgen` generates link to those with its `-l
 |-----------|---------|
 | `ghcr.io/omnetpp/doc-builder:latest` | the newest image; what the documentation builds of OMNeT++ and INET pull |
 | `ghcr.io/omnetpp/doc-builder:vX.Y.Z` | the image of a release of this repository, which the action of that release runs in |
-| `ghcr.io/omnetpp/doc-builder:vX` | the image of the newest `vX` release, which `omnetpp/doc-builder@vX` runs in |
-| `ghcr.io/omnetpp/doc-builder:<short-sha>` | immutable; pin a build to an exact toolchain |
+| `ghcr.io/omnetpp/doc-builder:vX` | the image of the `vX` branch (e.g. `v1`), which `omnetpp/doc-builder@vX` runs in; an image built from another branch is named after it the same way, with `-` for `/` |
 
 The image is `linux/amd64` only — every tool in it is fetched as an x86_64 binary,
 so the `Containerfile` and `build.sh` pin the platform explicitly.
@@ -266,12 +265,14 @@ To publish from a workstation instead:
 
 ```bash
 echo "$GHCR_TOKEN" | podman login ghcr.io -u <your-user> --password-stdin
-image/build.sh --push       # pushes :latest, :<short-sha>, and :vX.Y.Z and :vX for a release tag
+image/build.sh --push       # pushes :latest, :<branch>, and :vX.Y.Z for a release tag
 ```
 
-Both publish `:latest` and `:<short-sha>`, and for each release tag `vX.Y.Z` on the
-commit `:vX.Y.Z` and `:vX`, so publish the image of a release from its tagged
-commit, after tagging it. Both stamp an `org.opencontainers.image.source` label
+Both publish `:latest`, the name of the branch they run on (`:v1` from `v1`), and
+for each release tag `vX.Y.Z` on the commit `:vX.Y.Z`: publish from the `v1` branch
+after changing it, and the image of a release from its tagged commit, after tagging
+it. With a detached HEAD, as in a jj repository, `build.sh` takes the branches at
+HEAD (the bookmarks on `@-`). Both stamp an `org.opencontainers.image.source` label
 naming the publishing repository — the workflow from `github.repository`,
 `build.sh` from the `origin` remote. That label is what makes GHCR link the package
 to the repository.
