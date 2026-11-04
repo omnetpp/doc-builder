@@ -51,6 +51,7 @@ Its settings, all optional:
 | `omnetpp_nav_no_menu` | `[]` | tab titles that open no menu |
 | `omnetpp_nav_dropdown` | `False` | tab titles (or `True` for all) navigated by their menus alone, without the navigation sidebar |
 | `omnetpp_privacy_url` | `None` | URL of the privacy policy of the site, linked from the footer |
+| `omnetpp_commit` | `None` | the commit the pages were built from, named in the footer (e.g. `'81a07d40ef'`) |
 | `omnetpp_nav_json_threshold` | `100` | a document whose toctree lists more documents gets a navigation tree loaded as JSON (`0` or `None`: none by size) |
 | `omnetpp_nav_json` | `[]` | documents that get one regardless of size, e.g. `['api/index']` |
 | `omnetpp_nav_json_exclude` | `[]` | documents that never get one |

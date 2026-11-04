@@ -1,13 +1,25 @@
-{%- if show_sphinx %}
-  {%- set rendered_extracopyright -%}
+{#- Replaces the partial of the theme rather than extending it: the commit goes into its "Created using" sentence. The
+    {% trans %} wrappers of the original are dropped, as a translated string may not contain conditionals and the
+    sites are English-only. The consent dialog can only be reopened from a link to it. #}
+<div class="md-copyright">
+  {% if show_copyright %}
+    <div class="md-footer-copyright__highlight">
+      {%- if hasdoc('copyright') %}
+        &#169; <a href="{{ pathto('copyright') }}">Copyright</a> {{ copyright|e }}.
+      {%- else %}
+        &#169; Copyright {{ copyright|e }}.
+      {%- endif %}
+    </div>
+  {% endif %}
+  {%- if show_sphinx %}
+    Created {% if omnetpp_commit %}from commit {{ omnetpp_commit|e }} {% endif %}using
+    <a href="https://www.sphinx-doc.org/" target="_blank" rel="noopener">Sphinx</a>
+    {{ sphinx_version|e }}.
+    and
+    <a href="https://github.com/jbms/sphinx-immaterial/" target="_blank" rel="noopener">Sphinx-Immaterial</a>
     for the <a href="https://omnetpp.org/" target="_blank" rel="noopener">OMNeT++ Discrete Event Simulator</a>
-    {{- rendered_extracopyright }}
-  {%- endset %}
-{%- endif %}
-{#- The consent dialog can only be reopened from a link to it. #}
-{%- set rendered_extracopyright -%}
-  {{ rendered_extracopyright }}
+  {%- endif %}
+  {{- rendered_extracopyright }}
   {%- if omnetpp_privacy_url %}. <a href="{{ omnetpp_privacy_url }}">Privacy</a>{% endif %}
   {%- if config.extra.consent %}{{ " · " if omnetpp_privacy_url else ". " }}<a href="#__consent">Cookie settings</a>{% endif %}
-{%- endset %}
-{% include "!partials/copyright.html" %}
+</div>
