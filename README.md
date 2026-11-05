@@ -205,7 +205,7 @@ All paths are relative to the working directory (the repository root), and must 
 |-------|---------|---------|
 | `project-dir` | `.` | the OMNeT++ project whose NED and MSG files are documented |
 | `output-dir` | `_site` | where the site is built |
-| `title` | name of the project dir | title of the NED reference and the C++ API |
+| `title` | name of the project dir | name of the project, which titles the NED reference (`<title> NED Reference`) and the C++ API (`<title> C++ Reference`) |
 | `sphinx-source` | | the Sphinx project (the directory of `conf.py`); without it, the site is the NED reference |
 | `ned-dir` | `ned` | where the NED reference is generated in the Sphinx project |
 | `ned-format` | `html-material` | format of the NED reference without Sphinx: `html-material`, `html-readthedocs` or `html` |

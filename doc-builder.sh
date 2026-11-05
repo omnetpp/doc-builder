@@ -24,7 +24,8 @@ reference is generated as reStructuredText into the Sphinx project, which is the
 
   --project-dir DIR       the OMNeT++ project whose NED and MSG files are documented (default: .)
   --output-dir DIR        where the site is built (default: _site)
-  --title TEXT            title of the NED reference and the C++ API (default: name of the project dir)
+  --title TEXT            name of the project, in the titles of the NED reference and the C++ API
+                          ("TEXT NED Reference", "TEXT C++ Reference"; default: name of the project dir)
   --sphinx-source DIR     the Sphinx project (with conf.py) to build the site from
   --ned-dir DIR           where the NED reference goes in the Sphinx project (default: ned)
   --ned-format FORMAT     opp_docgen format without Sphinx: html-material (default), html-readthedocs
@@ -178,8 +179,7 @@ docgen() {
 project="$(realpath "$project_dir")"
 out="$(realpath -m "$output_dir")"
 name="${title:-$(basename "$project")}"
-docgen_opts=()
-[ -z "$title" ] || docgen_opts+=(--title="$title")
+docgen_opts=(--title="$name NED Reference")
 [ -z "$ned_path" ] || docgen_opts+=(--ned-path="$ned_path")
 [ -z "$external_docs" ] || docgen_opts+=(-l "$external_docs")
 read -r -a extra <<< "$docgen_args"
@@ -231,7 +231,7 @@ write_api_index() {
         pages+=("$(basename "$page" .rst)")
     done
     {
-        printf '%s\n' "$name C++ API" "$(printf '%*s' "$(( ${#name} + 8 ))" '' | tr ' ' '=')" ""
+        printf '%s\n' "$name C++ Reference" "$(printf '%*s' "$(( ${#name} + 14 ))" '' | tr ' ' '=')" ""
         if [ ${#pages[@]} -gt 0 ]; then
             printf '%s\n' ".. toctree::" "   :hidden:" ""
             printf '   %s\n' "${pages[@]}"

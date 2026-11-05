@@ -15,7 +15,7 @@ inputs:
     description: Where the site is built.
     default: _site
   title:
-    description: Title of the NED reference and the C++ API. Default is the name of the project directory.
+    description: Name of the project, which titles the NED reference ("<title> NED Reference") and the C++ API ("<title> C++ Reference"). Default is the name of the project directory.
     default: ''
   sphinx-source:
     description: >-
