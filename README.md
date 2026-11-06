@@ -126,7 +126,7 @@ the NED reference by packages, kinds of types and files, the C++ API by namespac
 needs no setting: it finds the NED reference through `omnetpp_neddoc`, and the C++ API by the `tagfile.xml` next to
 `api/index`. The trees appear under the entries of `ned/index` and `api/index` in your toctree.
 
-[`test/sample-model/doc`](test/sample-model/doc) is a complete example. Pages of the site refer to
+[`site/doc`](site/doc) is a complete example. Pages of the site refer to
 
 - NED and MSG types with `omnetpp_neddoc`, by their short or full names: `` :ned:`Source` ``,
   `` :ned:`the source <sample.Source>` ``, `` :msg:`Job` ``;
@@ -289,7 +289,7 @@ it (`image/build.sh --push`, see [Publishing](image/README.md#publishing)); for 
   [Build locally](image/README.md#build-locally)).
 - The action is `action.yml` at the root of the repository. Its logic is in `doc-builder.sh` beside it, which also
   runs locally, so that it can be tried without pushing it, also with a locally built image (`--image`).
-- [`test/`](test) holds a sample model project, which [`.github/workflows/test.yml`](.github/workflows/test.yml)
+- [`site/`](site) holds a sample model project, which [`.github/workflows/test.yml`](.github/workflows/test.yml)
   builds with the action on every push and weekly.
 
 ## License

@@ -1,5 +1,5 @@
-# Builds the sample model in test/sample-model with the action of this repository, in each of its
-# modes. Also runs weekly, to notice when a new doc-builder image breaks it.
+# Builds the sample model in site/, the website of this repository, with the action of this repository, in
+# each of its modes. Also runs weekly, to notice when a new doc-builder image breaks it.
 name: Test
 
 on:
@@ -19,7 +19,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./
         with:
-          project-dir: test/sample-model
+          project-dir: site
+          title: Sample Model
           doxygen: true
           fail-on-warnings: true
           upload-pages-artifact: false
@@ -36,8 +37,9 @@ jobs:
       - id: docs
         uses: ./
         with:
-          project-dir: test/sample-model
-          sphinx-source: test/sample-model/doc
+          project-dir: site
+          title: Sample Model
+          sphinx-source: site/doc
           doxygen: true
           fail-on-warnings: true
       - name: Check the site
@@ -57,8 +59,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./
         with:
-          project-dir: test/sample-model
-          sphinx-source: test/sample-model/doc
+          project-dir: site
+          title: Sample Model
+          sphinx-source: site/doc
           doxygen: true
           pdf: true
           upload-pages-artifact: false
