@@ -11,6 +11,7 @@ from typing import List, Optional, Union
 
 from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
+from sphinx.transforms.post_transforms import SphinxPostTransform
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout  # type: ignore  # These are not explicitly exported as functions
 from sphinx import __version__ as sphinx_version
@@ -421,6 +422,8 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
             title = join(title, '()')
 
         pnode = nodes.reference(title, title, internal=False, refuri=full_url)
+        if not pdf:
+            pnode['doxylink'] = True
         return [pnode], []
 
     return find_doxygen_link
@@ -493,19 +496,10 @@ def process_configuration(app, tag_filename, rootdir, pdf_filename):
         rootdir (str): Path to the root directory of Doxygen HTML documentation
         pdf_filename (str): Path to the pdf file; may be empty when LaTeX builder is not used
     """
+    # Without a PDF, the references that cannot work in a PDF are reported where they are (see RelativeLinksInPdf):
+    # a URL root links from a PDF, and a site whose PDF has no references needs no warning.
     if app.builder.format == 'latex':
-        if not pdf_filename:
-            if is_url(rootdir):
-                report_warning(app.env,
-                               "Linking from PDF to remote Doxygen html is not supported yet; got %r."
-                               "Consider linking to a Doxygen pdf file instead as "
-                               "third element of the tuple in the `doxylink` config variable." % rootdir)
-            else:
-                report_warning(app.env,
-                               "Linking from PDF to local Doxygen html is not possible; got %r."
-                               "Consider linking to a Doxygen pdf file instead as third element of the tuple in the "
-                               "`doxylink` config variable." % rootdir)
-        elif pdf_filename in app.config.doxylink_pdf_files:
+        if pdf_filename and pdf_filename in app.config.doxylink_pdf_files:
             source = app.config.doxylink_pdf_files[pdf_filename]
             fetch_file(app, source, pdf_filename)
     elif pdf_filename and not rootdir:
@@ -519,3 +513,21 @@ def setup_doxylink_roles(app):
         tag_filename, rootdir, pdf_filename = extract_configuration(values)
         process_configuration(app, tag_filename, rootdir, pdf_filename)
         app.add_role(name, create_role(app, tag_filename, rootdir, name, pdf=pdf_filename))
+
+
+class RelativeLinksInPdf(SphinxPostTransform):
+    """A PDF cannot link to the pages of a doxygen HTML output by a relative path, so such a reference becomes its
+    text, with a warning where it is. It works on the documents as they are written, because the PDF build of a site
+    usually reuses the documents that the HTML build has read, with the references that the roles made for it."""
+    default_priority = 5
+    formats = ('latex',)
+
+    def run(self, **kwargs):
+        for node in list(self.document.findall(nodes.reference)):
+            uri = node.get('refuri', '')
+            if node.get('doxylink') and not is_url(uri) and not os.path.isabs(uri):
+                getLogger(__name__).warning(
+                    'Linking from PDF to local Doxygen html is not possible; got %r. Link to the Doxygen pages by '
+                    'a URL, or to a Doxygen pdf file as third element of the tuple in the `doxylink` config '
+                    'variable.' % uri, location=node)
+                node.replace_self(nodes.inline(node.astext(), node.astext()))

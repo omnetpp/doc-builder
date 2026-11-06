@@ -1,7 +1,7 @@
 __version__ = "1.13.0"
 
 def setup(app):
-    from .doxylink import setup_doxylink_roles
+    from .doxylink import RelativeLinksInPdf, setup_doxylink_roles
     app.add_config_value('doxylink', {}, 'env')
     app.add_config_value('doxylink_pdf_files', {}, 'env')
     # Namespaces of external libraries whose symbols are intentionally not in our
@@ -11,6 +11,7 @@ def setup(app):
     app.add_config_value('doxylink_parse_error_ignore_regexes',
                          default=[], types=[str], rebuild='env')
     app.connect('builder-inited', setup_doxylink_roles)
+    app.add_post_transform(RelativeLinksInPdf)
 
     return {
         "version": __version__,
