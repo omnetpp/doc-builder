@@ -1,0 +1,70 @@
+# Builds the website of this repository (site/) with the action, the way a model project uses it, and deploys
+# it to GitHub Pages. Two variants of the site, in variants/, show what settings that apply to the whole site
+# change. The site documents the released action, so it is built on pushes to the release branch.
+name: Pages
+
+on:
+  push:
+    branches: [v1]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: omnetpp/doc-builder@v1
+        with:
+          project-dir: site
+          title: Sample Model
+          sphinx-source: site/doc
+          doxygen: true
+          pdf: true
+          fail-on-warnings: true
+          upload-pages-artifact: false
+
+      # The tabs open no menus
+      - uses: omnetpp/doc-builder@v1
+        with:
+          project-dir: site
+          title: Sample Model
+          sphinx-source: site/doc
+          doxygen: true
+          sphinx-args: -t variant -D omnetpp_nav_menus=0
+          fail-on-warnings: true
+          output-dir: _site/variants/no-menus
+          upload-pages-artifact: false
+
+      # The NED reference alone, without a Sphinx project: what the quick start publishes
+      - uses: omnetpp/doc-builder@v1
+        with:
+          project-dir: site
+          title: Sample Model
+          doxygen: true
+          fail-on-warnings: true
+          output-dir: _site/variants/ned-only
+          upload-pages-artifact: false
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
