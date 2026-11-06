@@ -5,10 +5,11 @@
 
 using namespace omnetpp;
 
+/** The sample model: a source of jobs, a queueing node that serves them, and a sink. */
 namespace sample {
 
 /**
- * Generates jobs at intervals given by the `interval` parameter.
+ * Generates jobs at intervals given by the `interval` parameter, of the kind and priority that it draws for each.
  *
  * See the NED documentation for parameters and statistics.
  */
