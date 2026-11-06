@@ -50,8 +50,8 @@ jobs:
           test -f "$SITE/ned/types/sample.Source.html"
           test -f "$SITE/api/classsample_1_1Source.html"
           grep -q 'href="../../api/classsample_1_1Source.html"' "$SITE/ned/types/sample.Source.html"
-          grep -q 'api/classsample_1_1Source.html' "$SITE/manual.html"
-          grep -q 'ned/types/sample.Source.html' "$SITE/manual.html"
+          grep -q 'api/classsample_1_1Source.html' "$SITE/config/writing.html"
+          grep -q 'ned/types/sample.Source.html' "$SITE/config/writing.html"
 
   sphinx-pdf:
     runs-on: ubuntu-latest
@@ -68,4 +68,4 @@ jobs:
       - name: Check the site
         run: |
           test -f _site/index.html
-          test -f _site/sample-model.pdf
+          test -f _site/doc-builder.pdf
