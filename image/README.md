@@ -28,184 +28,22 @@ building the documentation needs no network access. A project that sets other
 fonts in `html_theme_options` still downloads them, into a cache directory of its
 own (the image's is not writable for non-root users).
 
-## The omnetpp_immaterial theme
+## The OMNeT++ Sphinx extensions
 
-[`extensions/omnetpp_immaterial`](../extensions/omnetpp_immaterial) is a Sphinx extension on top of `sphinx_immaterial`, the shared look of the OMNeT++ sites
-(INET's inet.omnetpp.org first): denser sidebars with resizable widths, a sticky tab bar whose tabs open their
-sections as menus, the name of the site next to the logo, and a footer crediting OMNeT++. The `Containerfile`
-copies it into the venv, so a project built in the image enables it in its `conf.py`:
+The `Containerfile` copies the extensions of [`../extensions`](../extensions) into the venv, so a project built in
+the image enables them in its `conf.py`: `omnetpp_immaterial` (the look of the OMNeT++ sites, on top of
+`sphinx_immaterial`), `omnetpp_neddoc` (the `:ned:` and `:msg:` roles and the diagrams of the NED reference),
+`omnetpp_doxylink` (the `:cppref:` role), `omnetpp_lexers` (NED, MSG and ini highlighting) and `omnetpp_media`
+(videos and audio). Their settings and use are documented on the website of this repository:
+[The Theme](https://omnetpp.org/doc-builder/config/theme.html),
+[Navigation](https://omnetpp.org/doc-builder/config/navigation.html) and
+[The Extensions](https://omnetpp.org/doc-builder/config/extensions.html).
 
-```python
-html_theme = 'sphinx_immaterial'
-extensions = [..., 'sphinx_immaterial', 'omnetpp_immaterial']
-```
-
-Its settings, all optional:
-
-| Setting | Default | Meaning |
-|---------|---------|---------|
-| `omnetpp_homepage` | `None` | URL that the logo and the name of the site in the header lead to |
-| `omnetpp_nav_nowrap` | `[]` | URL path parts (e.g. `'/api/'`) whose sidebar entries scroll sideways instead of wrapping |
-| `omnetpp_nav_menus` | `True` | the tabs open their sections as menus |
-| `omnetpp_nav_menu_depth` | `3` | levels of submenus |
-| `omnetpp_nav_no_menu` | `[]` | tab titles that open no menu |
-| `omnetpp_nav_dropdown` | `False` | tab titles (or `True` for all) navigated by their menus alone, without the navigation sidebar |
-| `omnetpp_privacy_url` | `None` | URL of the privacy policy of the site, linked from the footer |
-| `omnetpp_commit` | `None` | the commit the pages were built from, named in the footer (e.g. `'81a07d40ef'`) |
-| `omnetpp_nav_json_threshold` | `100` | a document whose toctree lists more documents gets a navigation tree loaded as JSON (`0` or `None`: none by size) |
-| `omnetpp_nav_json` | `[]` | documents that get one regardless of size, e.g. `['api/index']` |
-| `omnetpp_nav_json_exclude` | `[]` | documents that never get one |
-
-With the theme's cookie consent configured (`html_theme_options['consent']`), the footer also links to the consent
-dialog, so that the reader can change their choice.
-
-A page whose top has a `:no-copy:` field gets no copy buttons on its code blocks: the theme lays out the whole page
-for each button, which freezes the browser for minutes on a page with thousands of code blocks (e.g. a single-page
-manual or a large generated reference).
-
-A page outside every toctree, or below the root of a navigation tree loaded as JSON (see below), still gets its table
-of contents, which the theme takes from the page's entry in the navigation. That is for generated references such as the NED reference of `opp_docgen --format=rst`, whose type and
-file pages are in no toctree: the theme writes the whole navigation into every page of the site, which would make
-each page carry hundreds of entries.
-
-The large generated references of a site (a NED reference, a C++ API of doxygen and doxysphinx) get their navigation
-from a tree loaded as JSON. Their pages stay in their toctrees, but the navigation that every page of the site carries
-ends at the root of the reference (the document whose toctree lists them); the tree of the root is written once,
-to `_static/omnetpp-nav/`, and a script renders it in the sidebar of the pages below the root, opening a group only
-when the reader expands it. Without it, each page of the site would carry an entry for every page of the reference:
-hundreds of kilobytes per page, and a build time that grows with the square of the number of pages. The roots are
-found without any setting: `omnetpp_neddoc` supplies the tree of its reference (its packages, namespaces and
-categories with their types, and its files); a document whose toctree lists more than `omnetpp_nav_json_threshold`
-documents (e.g. the `api/index` of the action) gets its doxygen classes by namespace, and its topics and files, when
-there is a doxygen `tagfile.xml` next to it, and the tree of its toctree otherwise. A page listed twice (e.g. a type
-under its package and its category) opens in the group that the reader clicked it in. Another extension supplies the
-tree of a root by handling the `omnetpp-nav-tree` event (see `omnetpp_immaterial/navtree.py`).
-
-Charts, diagrams and screenshots with a transparent background are drawn for a light page, so in the dark scheme a
-PNG image whose top left or top right pixel is transparent gets a white, padded background (the `transparent-image`
-class); one up to 32 pixels wide, e.g. an icon in a table, gets it without the padding (`transparent-icon`), keeping
-its size. The check reads only the first row of the image. An SVG image in black, white and grays only, e.g. a
-diagram of modules, is inverted instead (`adaptive-image`), which makes it light on the dark page like the text; one
-with colors or a bitmap in it, e.g. a chart, gets the white background unless it paints one of its own. A figure
-whose `:class:` option names one of these classes keeps it.
-
-It also patches the script of `sphinx_immaterial` 0.13.9 after the build, fixing two of its bugs: the site search,
-which finds nothing with Sphinx 9 ([sphinx-immaterial#485](https://github.com/jbms/sphinx-immaterial/issues/485)),
-and the instant navigation with links or images in inline SVG (e.g. the diagrams of `omnetpp_neddoc`): it fails on a
-page that has them, and a click on such a link loads the whole page.
-
-A site restyles it with its own stylesheet; e.g. `--omnetpp-tabs-edge` is the height of a bottom border that the
-site gives the tab bar, which stays below the header while the tab bar is away.
-
-## The omnetpp_doxylink extension
-
-[`extensions/omnetpp_doxylink`](../extensions/omnetpp_doxylink) is the Sphinx extension behind the `:cppref:` role of the OMNeT++ site, a fork of
-`sphinxcontrib-doxylink`: it defines roles that link C++ symbols to the HTML pages of a doxygen API, looked up in
-doxygen's tag file (`GENERATE_TAGFILE`). Unlike the original, it can leave the symbols of external libraries
-unlinked without a warning. Like `omnetpp_immaterial`, the `Containerfile` copies it into the venv, so a project built
-in the image enables it in its `conf.py`:
-
-```python
-extensions = [..., 'omnetpp_doxylink']
-doxylink = {'cppref': ('api/tagfile.xml', 'api/')}
-```
-
-after which ``:cppref:`omnetpp::cMessage` `` or ``:cppref:`cModule::getParentModule` `` in the text links to the
-page of that class or member. A name matches the symbols that end in it; an argument list, if given, selects among
-overloads and must match the declaration's, `const` included (``:cppref:`cModule::getParentModule() const` ``).
-
-Its settings:
-
-| Setting | Default | Meaning |
-|---------|---------|---------|
-| `doxylink` | `{}` | role name → `(tag file, doxygen HTML root)`, optionally with a third element, the doxygen PDF that the LaTeX builder links to instead; the tag file is a path relative to the directory `sphinx-build` runs in, or a URL; the HTML root is relative to the Sphinx source directory, absolute, or a URL |
-| `doxylink_external_namespaces` | `[]` | namespaces (e.g. `'std'`) whose symbols are intentionally not in the tag file; references to them render as plain code without an unresolved-reference warning |
-| `doxylink_pdf_files` | `{}` | PDF name (the third element above) → URL or path to fetch it from into the LaTeX output |
-| `doxylink_parse_error_ignore_regexes` | `[]` | regular expressions matched against the warnings about tag file entries whose argument list cannot be parsed; matching warnings are not shown (the entries are skipped either way) |
-
-## The omnetpp_lexers extension
-
-[`extensions/omnetpp_lexers`](../extensions/omnetpp_lexers) adds the Pygments lexers of the OMNeT++ file formats to Sphinx as code-block languages: `ned`,
-`msg`, `ini` (in place of Pygments' own, also recognizing `include` lines) and `fp` (fingerprint test output).
-The NED reference that `opp_docgen --format=rst` generates has `ned` and `msg` code blocks, which Sphinx only warns
-about without it (and leaves unhighlighted). The `Containerfile` copies it into the venv, so a project built in the
-image enables it in its `conf.py`; it has no settings:
-
-```python
-extensions = [..., 'omnetpp_lexers']
-```
-
-```rst
-.. code-block:: ned
-
-   simple Txc
-   {
-       gates:
-           input in;
-           output out;
-   }
-```
-
-## The omnetpp_media extension
-
-[`extensions/omnetpp_media`](../extensions/omnetpp_media) adds directives that embed videos and audio in HTML: `video` (looping) and `video_noloop` (also
-spelled `video_no_loop`) for a local file or a URL, `audio`, and `youtube` and `vimeo` for the id of a video there.
-All take the `width`, `height` and `align` (`left`, `center` or `right`, the default) options, and their content is
-the caption. A local file is resolved relative to the document, like an image, and is published like a `:download:`
-target; a URL, or a path that starts with a slash, is used as it is. The other formats, e.g. a PDF, show the caption
-instead, with a link to YouTube or Vimeo.
-
-```python
-extensions = [..., 'omnetpp_media']
-```
-
-```rst
-.. youtube:: KUe_vrWbEJY
-   :width: 560
-   :height: 315
-
-   Introduction to the Simulation IDE
-
-.. video:: media/run.mp4
-   :width: 640
-```
-
-## The omnetpp_neddoc extension
-
-[`extensions/omnetpp_neddoc`](../extensions/omnetpp_neddoc) works with the NED reference that `opp_docgen --format=rst -o <project>/ned ...` generates into a
-Sphinx project. Its `:ned:` and `:msg:` roles link type names to the pages of the reference, by the full name or the
-short one (``:ned:`Source` ``, ``:ned:`sample.Source` ``, ``:ned:`the source <Source>` ``, ``:msg:`Job` ``), from the
-`nedtags.xml` and `msgtags.xml` tag files that `opp_docgen` writes next to the pages; an ambiguous short name links
-to the first type in the tag file, and a name that is not there is a warning. In HTML, it inlines the diagrams of the
-reference pages, so that the types in them link to their pages, and gives them the colour scheme of
-`sphinx_immaterial`; a diagram shrinks to the width of the page down to 80% of its size, and a wider one (e.g. the
-usage diagram of a type that many others use) scrolls sideways. It also sets up `omnetpp_lexers`, for the `ned` and `msg` code blocks of the reference.
-
-The `index` page of the reference has the overview pages (packages, modules, files, ...) in its toctree; the type and
-file pages are reached from their listings, and are `:orphan:`, in no toctree, so that a theme that writes the whole
-navigation into every page (`sphinx_immaterial`) does not give each page of the site an entry for each of them. With
-`omnetpp_immaterial`, the sidebar of the reference pages shows the reference as a tree loaded as JSON: its packages
-and namespaces, the categories of types (modules, channels, ...) and the files, each with its pages.
-
-```python
-extensions = [..., 'omnetpp_neddoc']
-neddoc_dir = 'ned'          # where opp_docgen wrote the reference, relative to the Sphinx source directory
-```
-
-| Setting | Default | Meaning |
-|---------|---------|---------|
-| `neddoc_dir` | `'ned'` | the directory of the reference in the Sphinx project (the action's `ned-dir`) |
-| `neddoc_tags_dir` | `None` | where the tag files are, if not in `neddoc_dir`; relative to the Sphinx source directory, or absolute |
-| `neddoc_url` | `None` | URL of the root of a reference published by another build (e.g. another version), which the roles then link to with absolute URLs; its tag files are in `neddoc_tags_dir` |
-
-A name that is not in the tag files is a warning of type `neddoc.unknown`, and one whose page is not in the build (e.g.
-the tag files of another build without `neddoc_url`) is a `neddoc.missing`; both render as plain literals. A build
-without tag files warns once, with `neddoc.no_reference`, and renders all names as plain literals. A site silences
-them with `suppress_warnings`, e.g. a build that documents only some of the types, or one that has no reference of its
-own.
-
-The roles link to one reference; types of dependencies (e.g. INET's, in a model built on INET) render as literals
-with a warning. The pages that `opp_docgen` generates link to those with its `-l` option.
+`omnetpp_immaterial` also patches the script of `sphinx_immaterial` 0.13.9 after the build, fixing two of its bugs:
+the site search, which finds nothing with Sphinx 9
+([sphinx-immaterial#485](https://github.com/jbms/sphinx-immaterial/issues/485)), and the instant navigation with
+links or images in inline SVG (e.g. the diagrams of `omnetpp_neddoc`): it fails on a page that has them, and a click
+on such a link loads the whole page.
 
 ## Naming and tags
 
