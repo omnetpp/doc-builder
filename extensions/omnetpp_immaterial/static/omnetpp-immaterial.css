@@ -20,10 +20,9 @@
     margin-top: 0;
   }
 
-  /* A wider sidebar or content widens the page rather than narrowing the rest. The content width includes the
-     secondary sidebar (see omnetpp-immaterial.js). */
+  /* The page fills the window, and the content takes what the sidebars leave. */
   .md-grid {
-    max-width: calc(var(--omnetpp-nav-width, 12.1rem) + var(--omnetpp-content-width, 48.9rem));
+    max-width: none;
   }
 
   /* The seams stick out of their parts, over the next one: the sticky sidebars are stacked on their own, after
@@ -39,6 +38,10 @@
 
   .md-sidebar--primary {
     width: var(--omnetpp-nav-width, 12.1rem);
+  }
+
+  .md-sidebar--secondary {
+    width: var(--omnetpp-toc-width, 12.1rem);
   }
 
   .md-sidebar--primary .md-nav__item > .md-nav__link {
@@ -178,9 +181,9 @@
     z-index: 2;
   }
 
-  /* Without a secondary sidebar, the right of the content may be the edge of the window, with no room for the seam. */
+  /* Without a secondary sidebar, there is nothing for it to resize. */
   .md-main__inner:not(:has(.md-sidebar--secondary:not([hidden]))) .omnetpp-content-seam {
-    right: 0;
+    display: none;
   }
 
   /* The seam of the primary sidebar is placed over its scroll area by omnetpp-immaterial.js: the sidebar box itself
@@ -400,8 +403,8 @@
   }
 }
 
-/* The scrollbar of the page is always shown: if it came and went with the length of the page, the centred page
-   would shift sideways from page to page. It is narrow, in the style of those of the sidebars. */
+/* The scrollbar of the page is always shown: if it came and went with the length of the page, the content would
+   change its width from page to page. It is narrow, in the style of those of the sidebars. */
 html {
   overflow-y: scroll;
   scrollbar-width: thin;

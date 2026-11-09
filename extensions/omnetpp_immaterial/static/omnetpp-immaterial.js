@@ -1,29 +1,11 @@
-// The right edges of the primary sidebar and of the content can be dragged to set their widths, and double-clicked
-// to reset them. The widths are kept in the theme's storage, which is scoped to the site, and applied by
-// templates/partials/javascripts/base.html.
+// The right edge of the primary sidebar and the left edge of the secondary one can be dragged to set their widths, and
+// double-clicked to reset them; the content takes the rest of the window. The widths are kept in the theme's storage,
+// which is scoped to the site, and applied by templates/partials/javascripts/base.html.
 (function () {
   const root = document.documentElement;
+  const MIN_CONTENT = 480;
 
-  // The page is centred and grows with the dragged part, so the edge moves slower than the width while there is
-  // margin left, and as fast once the page fills the window: the width under the pointer is found by the secant
-  // method.
-  function follow(measure, apply, clamp, x) {
-    let rect = measure();
-    let width = clamp(rect.width + x - rect.right);
-    for (let i = 0; i < 3; i++) {
-      apply(width);
-      const next = measure();
-      const miss = x - next.right;
-      const slope = (next.right - rect.right) / (next.width - rect.width);
-      if (Math.abs(miss) < 1 || !(slope > 0)) break;
-      rect = next;
-      const target = clamp(next.width + miss / slope);
-      if (target === width) break;
-      width = target;
-    }
-  }
-
-  function resizable({key, property, min, max, parent, seamClass, measure}) {
+  function resizable({key, property, min, max, parent, seamClass, widthAt}) {
     const apply = width => {
       if (width) root.style.setProperty(property, width + 'px');
       else root.style.removeProperty(property);
@@ -32,7 +14,7 @@
       try { __md_set(key, width); } catch (e) { }
     };
     const clamp = width => Math.round(Math.min(Math.max(width, min), max()));
-    if (parent.querySelector(':scope > .omnetpp-seam')) return null;
+    if (parent.querySelector(':scope > .omnetpp-seam')) return;
     const seam = document.createElement('div');
     seam.className = 'omnetpp-seam ' + seamClass;
     seam.title = 'Drag to resize, double-click to reset';
@@ -43,72 +25,52 @@
       seam.setPointerCapture(e.pointerId);
       root.classList.add('omnetpp-resizing');
       seam.classList.add('omnetpp-seam--active');
-      let moved = false;
+      let width = null;
       const move = e => {
-        moved = true;
-        follow(measure, apply, clamp, e.clientX);
+        width = clamp(widthAt(e.clientX));
+        apply(width);
       };
       seam.addEventListener('pointermove', move);
       seam.addEventListener('lostpointercapture', () => {
         seam.removeEventListener('pointermove', move);
         root.classList.remove('omnetpp-resizing');
         seam.classList.remove('omnetpp-seam--active');
-        if (moved) save(clamp(measure().width));
+        if (width) save(width);
       }, {once: true});
     });
     seam.addEventListener('dblclick', () => {
       apply(null);
       save(null);
     });
-    return seam;
-  }
-
-  function navWidth() {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position: absolute; visibility: hidden; width: var(--omnetpp-nav-width, 12.1rem)';
-    document.body.appendChild(probe);
-    const width = probe.offsetWidth;
-    probe.remove();
-    return width;
   }
 
   function attach() {
     const sidebar = document.querySelector('.md-sidebar--primary');
-    if (sidebar) {
-      const seam = resizable({
-        key: 'omnetpp-nav.width', property: '--omnetpp-nav-width', min: 160, max: () => window.innerWidth / 2,
-        parent: sidebar, seamClass: 'omnetpp-nav-seam', measure: () => sidebar.getBoundingClientRect(),
+    const toc = document.querySelector('.md-sidebar--secondary');
+    const content = document.querySelector('.md-content');
+    const widthOf = element => element && !element.hidden ? element.getBoundingClientRect().width : 0;
+    if (sidebar && content) {
+      resizable({
+        key: 'omnetpp-nav.width', property: '--omnetpp-nav-width', min: 160,
+        max: () => window.innerWidth - widthOf(toc) - MIN_CONTENT,
+        parent: sidebar, seamClass: 'omnetpp-nav-seam', widthAt: x => x - sidebar.getBoundingClientRect().left,
       });
+      const seam = sidebar.querySelector(':scope > .omnetpp-seam');
       const wrap = sidebar.querySelector('.md-sidebar__scrollwrap');
-      if (seam && wrap) {
+      if (seam && wrap && !seam.dataset.omnetppPlaced) {
+        seam.dataset.omnetppPlaced = 'placed';
         new ResizeObserver(() => {
           seam.style.top = wrap.offsetTop + 'px';
           seam.style.height = wrap.offsetHeight + 'px';
         }).observe(wrap);
       }
     }
-    // The width is that of the content and the secondary sidebar together, so that it is the same on pages
-    // without the secondary sidebar, where the content takes its place.
-    const content = document.querySelector('.md-content');
-    const inner = content && content.closest('.md-main__inner');
-    if (content && inner) {
-      // A hidden primary sidebar (e.g. of a tab navigated by its menu) leaves its width to the content. It does not
-      // change while dragging, so it is measured once, at its start.
-      let freed = 0;
-      const seam = resizable({
-        key: 'omnetpp-content.width', property: '--omnetpp-content-width', min: 480, max: () => window.innerWidth,
-        parent: content, seamClass: 'omnetpp-content-seam',
-        measure: () => {
-          const rect = content.getBoundingClientRect();
-          return {right: rect.right, width: inner.getBoundingClientRect().right - rect.left - freed};
-        },
+    if (toc && content) {
+      resizable({
+        key: 'omnetpp-toc.width', property: '--omnetpp-toc-width', min: 160,
+        max: () => window.innerWidth - widthOf(sidebar) - MIN_CONTENT,
+        parent: content, seamClass: 'omnetpp-content-seam', widthAt: x => toc.getBoundingClientRect().right - x,
       });
-      if (seam) {
-        seam.addEventListener('pointerdown', () => {
-          const sidebar = document.querySelector('.md-sidebar--primary');
-          freed = sidebar && sidebar.hidden ? navWidth() : 0;
-        });
-      }
     }
   }
 
