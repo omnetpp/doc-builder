@@ -706,6 +706,42 @@ html {
   filter: invert(0.88) hue-rotate(180deg);
 }
 
+/* The theme lets navigation titles break inside words, e.g. between camel-case parts, for the sake of API symbols. */
+.md-sidebar wbr {
+  display: none;
+}
+
+/* Lists are tighter than the theme's, whose items are spaced like paragraphs. The doxygen pages have lists of their
+   own design, e.g. of tabs, which set their heights by the line height. */
+.md-typeset ol:not(:where(.doxygen-content *)),
+.md-typeset ul:not(:where(.doxygen-content *)) {
+  margin-top: 0.5em;
+  line-height: 1.4;
+}
+
+.md-typeset ol li,
+.md-typeset ul li {
+  margin-bottom: 0.2em;
+}
+
+.md-typeset ol li p,
+.md-typeset ul li p {
+  margin: 0;
+}
+
+.md-typeset ol li p + p,
+.md-typeset ul li p + p {
+  margin-top: 0.4em;
+}
+
+.md-typeset ol li ol,
+.md-typeset ol li ul,
+.md-typeset ul li ol,
+.md-typeset ul li ul {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
 /* The theme fits a figure to its image, whose percent width would then be of its own size: 30% of a small screenshot
    is an unreadable stamp. It is of the page instead, as in a PDF (images.py). */
 .md-typeset figure:not(.align-left, .align-right):has(img[style*="%"], img[width$="%"]) {
