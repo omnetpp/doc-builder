@@ -168,13 +168,19 @@
     padding-right: 0;
   }
 
+  /* To the right of its edge only: the scrollbar of the sidebar is on the left of it. */
   .omnetpp-seam {
     position: absolute;
     right: -0.3rem;
-    width: 0.6rem;
+    width: 0.3rem;
     cursor: col-resize;
     touch-action: none;
     z-index: 2;
+  }
+
+  /* Without a secondary sidebar, the right of the content may be the edge of the window, with no room for the seam. */
+  .md-main__inner:not(:has(.md-sidebar--secondary:not([hidden]))) .omnetpp-content-seam {
+    right: 0;
   }
 
   /* The seam of the primary sidebar is placed over its scroll area by omnetpp-immaterial.js: the sidebar box itself
@@ -189,7 +195,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: calc(50% - 0.05rem);
+    left: 0;
     width: 0.1rem;
     background-color: var(--md-accent-fg-color);
     opacity: 0;
