@@ -822,9 +822,14 @@
   }
 
   document.addEventListener('click', e => {
-    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     const link = e.target.closest('a');
     const image = link ? link.querySelector(':scope > img') : e.target;
+    // The theme's instant navigation takes a link without an href for one to the page itself, and reloads it.
+    if (image && link && !link.hasAttribute('href')) {
+      e.stopPropagation();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     if (image && image.matches('img.omnetpp-enlargeable')) {
       e.preventDefault();
       open(image);
