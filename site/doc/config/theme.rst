@@ -118,6 +118,16 @@ it paints one of its own. A figure whose ``:class:`` option names one of these
 classes keeps it. Switch this site to the dark scheme (the bulb in the header)
 and open a type of the :doc:`NED Reference <../ned/index>` to see it.
 
+Images in a popup
+-----------------
+
+An image that a popup would show at least 20% larger than the page does, whether
+the page shrinks it by its ``:width:``, ``:height:`` or ``:scale:`` option or by
+its own width, opens in that popup when clicked, at its real size or as large as
+the window allows, with the caption of its figure. A resized image that would
+gain less is not clickable, which depends on the size of the window.
+An image with a ``:target:`` and an image map keep their links.
+
 Restyling
 ---------
 

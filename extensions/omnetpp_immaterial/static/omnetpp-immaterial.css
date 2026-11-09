@@ -699,3 +699,68 @@ html {
 [data-md-color-scheme=slate] .md-typeset img.adaptive-image {
   filter: invert(0.88) hue-rotate(180deg);
 }
+
+/* The popup of an image shown smaller than its real size (omnetpp-immaterial.js). The gutter of the scrollbar stays
+   while the page cannot scroll behind it, so that the page does not shift sideways. */
+.md-content img.omnetpp-enlargeable {
+  cursor: zoom-in;
+}
+
+html:has(.omnetpp-lightbox[open]) {
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
+
+.omnetpp-lightbox {
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  padding: 0.8rem;
+  overflow: auto;
+  border: none;
+  border-radius: 0.4rem;
+  background-color: var(--md-default-bg-color);
+  color: var(--md-typeset-color);
+  box-shadow: var(--md-shadow-z2);
+  cursor: zoom-out;
+}
+
+.omnetpp-lightbox::backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.md-typeset.omnetpp-lightbox img {
+  display: block;
+  max-width: calc(100vw - 3.6rem);
+  max-height: calc(100dvh - 7rem);
+}
+
+.omnetpp-lightbox__close {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color--light);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.omnetpp-lightbox__close:hover {
+  color: var(--md-accent-fg-color);
+}
+
+/* As wide as the image: a long caption wraps rather than widens the popup. */
+.omnetpp-lightbox__caption {
+  width: 0;
+  min-width: 100%;
+  margin-top: 0.5rem;
+  text-align: center;
+  cursor: auto;
+}
+
+.omnetpp-lightbox__caption p {
+  margin: 0;
+}

@@ -732,6 +732,118 @@
   if (window.document$) window.document$.subscribe(reset);
 })();
 
+// An image shown smaller than its real size opens in a popup, as large as the window allows, rather than as a bare
+// file. Sphinx links a resized image to its file: the link stays on such an image, for opening it in a new tab and
+// for readers without JavaScript, and goes from one that would gain nothing. An image that links elsewhere or is an
+// image map keeps its behavior, and so does one of sphinxcontrib.images, which has its own popup.
+(function () {
+  const MIN_ENLARGEMENT = 1.2;
+  const SCHEME_CLASSES = ['transparent-image', 'adaptive-image'];
+  let images = [];
+  let dialog, picture, caption;
+
+  // What the window leaves for the image in the popup, as in omnetpp-immaterial.css: a tall image in a short window
+  // may gain little however much smaller it is on the page.
+  function popupWidth(image) {
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const fit = Math.min(1, (window.innerWidth - 3.6 * rem) / image.naturalWidth,
+                         (window.innerHeight - 7 * rem) / image.naturalHeight);
+    return image.naturalWidth * fit;
+  }
+
+  function update(image) {
+    if (!image.complete) return;
+    const style = getComputedStyle(image);
+    const shown = image.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const enlargeable = shown > 0 && image.naturalWidth > 0 && popupWidth(image) >= shown * MIN_ENLARGEMENT;
+    image.classList.toggle('omnetpp-enlargeable', enlargeable);
+    const link = image.closest('a');
+    if (link) {
+      if (enlargeable) link.href = image.src;
+      else link.removeAttribute('href');
+    } else if (enlargeable) {
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.setAttribute('aria-haspopup', 'dialog');
+    } else {
+      image.removeAttribute('tabindex');
+      image.removeAttribute('role');
+      image.removeAttribute('aria-haspopup');
+    }
+  }
+
+  const observer = new ResizeObserver(entries => {
+    for (const entry of entries) update(entry.target);
+  });
+
+  function attach() {
+    if (dialog && dialog.open) dialog.close();
+    observer.disconnect();
+    images = [];
+    for (const image of document.querySelectorAll('.md-content img:not([usemap])')) {
+      const link = image.closest('a');
+      if (link && (link.hasAttribute('data-lightbox') || (link.hasAttribute('href') && link.href !== image.src))) continue;
+      images.push(image);
+      image.addEventListener('load', () => update(image), {once: true});
+      observer.observe(image);
+    }
+  }
+
+  function create() {
+    dialog = document.createElement('dialog');
+    dialog.className = 'omnetpp-lightbox md-typeset';
+    const close = dialog.appendChild(document.createElement('button'));
+    close.className = 'omnetpp-lightbox__close';
+    close.type = 'button';
+    close.ariaLabel = 'Close';
+    close.textContent = '×';
+    picture = dialog.appendChild(document.createElement('img'));
+    caption = dialog.appendChild(document.createElement('div'));
+    caption.className = 'omnetpp-lightbox__caption';
+    dialog.addEventListener('click', e => {
+      if (!caption.contains(e.target)) dialog.close();
+    });
+    document.body.appendChild(dialog);
+  }
+
+  function open(image) {
+    if (!dialog) create();
+    picture.src = image.currentSrc || image.src;
+    picture.alt = image.alt;
+    picture.className = SCHEME_CLASSES.filter(name => image.classList.contains(name)).join(' ');
+    const figure = image.closest('figure');
+    const source = figure && figure.querySelector('figcaption');
+    const text = source ? source.cloneNode(true) : document.createElement('div');
+    for (const permalink of text.querySelectorAll('.headerlink')) permalink.remove();
+    caption.replaceChildren(...text.childNodes);
+    caption.hidden = !source;
+    dialog.ariaLabel = caption.textContent.trim() || image.alt;
+    dialog.showModal();
+  }
+
+  document.addEventListener('click', e => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    const link = e.target.closest('a');
+    const image = link ? link.querySelector(':scope > img') : e.target;
+    if (image && image.matches('img.omnetpp-enlargeable')) {
+      e.preventDefault();
+      open(image);
+    }
+  }, true);
+
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('img.omnetpp-enlargeable')) {
+      e.preventDefault();
+      open(e.target);
+    }
+  });
+
+  window.addEventListener('resize', () => images.forEach(update), {passive: true});
+
+  if (window.document$) window.document$.subscribe(attach);
+  else document.addEventListener('DOMContentLoaded', attach);
+})();
+
 // The theme's Accept saves the choices of the consent settings, also while they are folded away, where the reader
 // cannot see them: after a Reject, all of them are cleared, and Accept would accept nothing. Folded away, Accept
 // accepts all.
