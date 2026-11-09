@@ -118,6 +118,12 @@ it paints one of its own. A figure whose ``:class:`` option names one of these
 classes keeps it. Switch this site to the dark scheme (the bulb in the header)
 and open a type of the :doc:`NED Reference <../ned/index>` to see it.
 
+Image sizes
+-----------
+
+A percent ``:width:`` of an image or a figure is of the width of the page, as in
+a PDF. In HTML, it never makes a bitmap larger than its real size.
+
 Images in a popup
 -----------------
 

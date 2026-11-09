@@ -706,6 +706,12 @@ html {
   filter: invert(0.88) hue-rotate(180deg);
 }
 
+/* The theme fits a figure to its image, whose percent width would then be of its own size: 30% of a small screenshot
+   is an unreadable stamp. It is of the page instead, as in a PDF (images.py). */
+.md-typeset figure:not(.align-left, .align-right):has(img[style*="%"], img[width$="%"]) {
+  width: 100%;
+}
+
 /* The popup of an image shown smaller than its real size (omnetpp-immaterial.js). The gutter of the scrollbar stays
    while the page cannot scroll behind it, so that the page does not shift sideways. */
 .md-content img.omnetpp-enlargeable {

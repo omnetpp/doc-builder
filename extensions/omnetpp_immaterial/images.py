@@ -9,6 +9,9 @@ An SVG image in black, white and grays only (e.g. a diagram of modules) gets the
 dark scheme, it is light on the dark page like the text. One with colors or a bitmap in it (e.g. a chart, or the look
 of a canvas figure) would show them wrong inverted, so it gets transparent-image, unless it paints a background of its
 own. An image that already has one of these classes (e.g. from the :class: option of its figure) is left as it is.
+
+The percent width of an image is of the page, as in a PDF (see omnetpp-immaterial.css): an HTML build limits that of a
+bitmap to its real size, which CSS does not know, so that a small image is not enlarged into a blur.
 """
 
 import colorsys
@@ -19,6 +22,7 @@ import xml.etree.ElementTree as ET
 import zlib
 
 from docutils import nodes
+from sphinx.util.images import get_image_size
 
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
@@ -172,14 +176,35 @@ def svg_class(path):
     return 'transparent-image'
 
 
+def image_uri(image):
+    # An image given as name.* is unresolved here; the HTML builder takes its SVG file, else its PNG one.
+    uri, candidates = image['uri'], image.get('candidates', {})
+    if uri.endswith('.*'):
+        uri = candidates.get('image/svg+xml', candidates.get('image/png', uri))
+    return uri
+
+
+def visit_image(self, node):
+    uri = image_uri(node)
+    percent = node.get('width', '').endswith('%')
+    type(self).visit_image(self, node)
+    # An SVG image stays sharp at any size.
+    if percent and not uri.lower().endswith('.svg'):
+        path = os.path.join(self.builder.srcdir, uri)
+        size = get_image_size(path) if os.path.isfile(path) else None
+        if size:
+            self.body[-1] = self.body[-1].replace('style="', f'style="max-width: min(100%, {size[0]}px); ', 1)
+
+
+def depart_image(self, node):
+    type(self).depart_image(self, node)
+
+
 def mark_transparent_images(app, doctree, docname):
     for image in doctree.findall(nodes.image):
         if any(c in CLASSES for c in image['classes']):
             continue
-        # An image given as name.* is unresolved here; the HTML builder takes its SVG file, else its PNG one.
-        uri, candidates = image['uri'], image.get('candidates', {})
-        if uri.endswith('.*'):
-            uri = candidates.get('image/svg+xml', candidates.get('image/png', uri))
+        uri = image_uri(image)
         path = os.path.join(app.srcdir, uri)
         if not os.path.isfile(path):
             continue
@@ -196,3 +221,4 @@ def mark_transparent_images(app, doctree, docname):
 
 def setup(app):
     app.connect('doctree-resolved', mark_transparent_images)
+    app.add_node(nodes.image, override=True, html=(visit_image, depart_image))
