@@ -2,61 +2,59 @@
 # from a workstation means the published image is reproducible, is automatically
 # linked to this repository, and needs no personal access token.
 #
-# Currently DISABLED (fails in its first step): the image bundles a locally built
-# opp-tools tarball, so it is published from a workstation with image/build.sh --push.
+# Runs on:
+#   - a push to v1 that changes the image (image/, extensions/, this file): the
+#     action at v1 and the documentation builds that pull :latest run in it.
+#     Other pushes leave the toolchain under every build as it is.
+#   - a push of a release tag vX.Y.Z, whatever it changes: the action of that
+#     release runs in :vX.Y.Z.
+#   - a manual run from the Actions tab, e.g. for the updates of the Ubuntu packages.
 #
-# Manual only: run it from the Actions tab after changing the image (image/,
-# extensions/). Republishing the image changes the toolchain under every
-# subsequent documentation build, so it is a deliberate act rather than a side
-# effect of pushing.
-#
-# Every build publishes these references:
-#   :latest           - what the documentation builds pull by default
-#   :<branch>         - the branch it is run on, e.g. :v1, which
-#                       omnetpp/doc-builder@v1 runs in
-#   :vX.Y.Z           - for a release tag on the commit; the action of
-#                       that release runs in it
+# Each run publishes the names of its ref:
+#   :<branch>         - for a branch, e.g. :v1, which omnetpp/doc-builder@v1 runs
+#                       in; :latest as well for the default branch (v1)
+#   :vX.Y.Z           - for a release tag
 name: Build doc-builder image
 
 on:
+  push:
+    branches: [v1]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    # Not evaluated for tag pushes
+    paths:
+      - 'image/**'
+      - 'extensions/**'
+      - '.github/workflows/doc-builder-image.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+# Per ref: a release pushes v1 and its tag together, and a run pending in the same
+# group as another one would be cancelled by a third.
 concurrency:
-  group: doc-builder-image
+  group: doc-builder-image-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # The image bundles @omnetpp/opp-tools, which is not on npm yet and comes from
-      # a local build of the omnetpp-vscode repo that this checkout does not have.
-      # Remove this step once the Containerfile fetches a published version.
-      - name: Unavailable until opp-tools is published
-        run: |
-          echo "::error::The doc-builder image needs a locally built opp-tools tarball. Publish it from a workstation with image/build.sh --push"
-          exit 1
-
       - uses: actions/checkout@v7
-        with:
-          fetch-tags: true
 
       - name: Tags
         id: tags
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           {
             echo 'list<<EOF'
-            echo "ghcr.io/omnetpp/doc-builder:latest"
-            if [ "$GITHUB_REF_TYPE" = branch ]; then
-              echo "ghcr.io/omnetpp/doc-builder:${GITHUB_REF_NAME//\//-}"
+            # A branch name may have slashes, which an image tag may not
+            echo "ghcr.io/omnetpp/doc-builder:${GITHUB_REF_NAME//\//-}"
+            if [ "$GITHUB_REF_TYPE" = branch ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; then
+              echo "ghcr.io/omnetpp/doc-builder:latest"
             fi
-            for tag in $(git tag --points-at HEAD 'v[0-9]*'); do
-              echo "ghcr.io/omnetpp/doc-builder:$tag"
-            done
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
@@ -75,6 +73,6 @@ jobs:
           tags: ${{ steps.tags.outputs.list }}
           # Links the GHCR package to this repository.
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          # No build cache on purpose: this image is rebuilt only when the
-          # toolchain changes, and a mode=max export would crowd the repository's
+          # No build cache on purpose: this image is rebuilt only when it
+          # changes, and a mode=max export would crowd the repository's
           # shared 10 GB Actions cache. Requires no buildx driver setup either.

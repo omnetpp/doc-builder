@@ -58,47 +58,56 @@ so the `Containerfile` and `build.sh` pin the platform explicitly.
 
 ## Build locally
 
-`@omnetpp/opp-tools` is not published to npm yet, so the image bundles a locally
-built npm tarball, from a checkout of omnetpp-vscode that `vscode` in the root of
-this repository links to (it is in omnetpp-dev as `vscode/`):
-
 ```bash
-ln -s ../omnetpp-dev/vscode vscode          # once
-(cd vscode && bun run package:cli)          # -> vscode/build/omnetpp-opp-tools-<ver>.tgz
 image/build.sh                              # -> ghcr.io/omnetpp/doc-builder:latest
 ```
 
-`build.sh` takes the single tarball in `vscode/build/` (set `OPP_TOOLS_TGZ=<path>`
-to use another one), stages it as `image/opp-tools.tgz` (gitignored, removed
-afterwards) for the `Containerfile` to bind-mount, and records its version and the
-vscode commit in the image labels:
+The image gets the opp-tools version that the `Containerfile` pins
+(`OPP_TOOLS_VERSION`, see [Toolchain pins](#toolchain-pins)) from npm. To try
+opp-tools that are not published yet, bundle a tarball built in omnetpp-vscode
+instead:
 
 ```bash
-podman inspect -f '{{json .Labels}}' ghcr.io/omnetpp/doc-builder:latest
+(cd ../omnetpp-dev/vscode && bun run package:cli)    # -> build/omnetpp-opp-tools-<ver>.tgz
+OPP_TOOLS_TGZ=../omnetpp-dev/vscode/build/omnetpp-opp-tools-<ver>.tgz IMAGE=<ref> image/build.sh
 ```
 
-The build context is the root of this repository (`image/` and `extensions/`);
-building without `build.sh` requires staging the tarball by hand. `IMAGE=<ref>`
-builds under another name, e.g. a test image that `doc-builder.sh --image <ref>` or
-the documentation build of OMNeT++ (`IMAGE=<ref> doc/src/build.sh <target>`) can try.
+`build.sh` passes the tarball to the `Containerfile` as the `opp-tools-local` build
+context, and records its version and the commit of its repository in the image
+labels:
+
+```bash
+podman inspect -f '{{json .Labels}}' <ref>
+```
+
+Such an image is for testing only: `build.sh --push` refuses to publish it.
+
+The build context is the root of this repository (`image/` and `extensions/`), so
+`podman build -f image/Containerfile .` works as well. `IMAGE=<ref>` builds under
+another name, e.g. a test image that `doc-builder.sh --image <ref>` or the
+documentation build of OMNeT++ (`IMAGE=<ref> doc/src/build.sh <target>`) can try.
 
 The `Containerfile` installs the toolchain first (TeX Live, doxygen, pandoc, the
 Python stack from `uv.lock`, the theme's fonts) and checks the PDF build, then adds
-the opp-tools and the extensions, the theme last. A change in `extensions/` or a new
-opp-tools tarball therefore reuses the cached toolchain and takes seconds; only a
-new `uv.lock`, tool version or base image downloads again.
+the opp-tools and the extensions, the theme last. A change in `extensions/` or
+another opp-tools version therefore reuses the cached toolchain and takes seconds;
+only a new `uv.lock`, tool version or base image downloads again.
 
 ## Publishing
 
-**Currently from a workstation only** (see below): `doc-builder-image.yml` has no
-access to the locally built opp-tools tarball, so it deliberately fails in its
-first step until the `Containerfile` fetches a published opp-tools version.
+[`.github/workflows/doc-builder-image.yml`](../.github/workflows/doc-builder-image.yml)
+publishes the image, with no personal access token:
 
-Once it is re-enabled, use `.github/workflows/doc-builder-image.yml`: **Actions →
-Build doc-builder image → Run workflow**. It needs no personal access token. It is
-manual on purpose — republishing `:latest` changes the toolchain under every
-subsequent documentation build — so run it after changing the image, and not
-otherwise.
+| Event | Publishes |
+|-------|-----------|
+| a push to `v1` that changes `image/`, `extensions/` or the workflow | `:v1` and `:latest` |
+| a push of a release tag `vX.Y.Z` | `:vX.Y.Z` |
+| **Actions → Build doc-builder image → Run workflow** | the name of the branch or tag it runs on, and `:latest` for `v1` |
+
+Other pushes to `v1` publish nothing, so the toolchain under every documentation
+build changes only with the image. A release whose commit changes the image pushes
+`v1` and its tag together and builds it twice: `:v1` and `:vX.Y.Z` have the same
+contents, but not the same digest.
 
 To publish from a workstation instead:
 
@@ -107,14 +116,12 @@ echo "$GHCR_TOKEN" | podman login ghcr.io -u <your-user> --password-stdin
 image/build.sh --push       # pushes :latest, :<branch>, and :vX.Y.Z for a release tag
 ```
 
-Both publish `:latest`, the name of the branch they run on (`:v1` from `v1`), and
-for each release tag `vX.Y.Z` on the commit `:vX.Y.Z`: publish from the `v1` branch
-after changing it, and the image of a release from its tagged commit, after tagging
-it. With a detached HEAD, as in a jj repository, `build.sh` takes the branches at
-HEAD (the bookmarks on `@-`). Both stamp an `org.opencontainers.image.source` label
-naming the publishing repository — the workflow from `github.repository`,
-`build.sh` from the `origin` remote. That label is what makes GHCR link the package
-to the repository.
+It publishes `:latest`, the name of the branch it runs on (`:v1` from `v1`), and
+for each release tag `vX.Y.Z` on the commit `:vX.Y.Z`. With a detached HEAD, as in
+a jj repository, it takes the branches at HEAD (the bookmarks on `@-`). Both the
+workflow and `build.sh` stamp an `org.opencontainers.image.source` label naming the
+publishing repository — the workflow from `github.repository`, `build.sh` from the
+`origin` remote. That label is what makes GHCR link the package to the repository.
 
 ## Toolchain pins
 
@@ -126,6 +133,7 @@ is the single source of truth, nothing outside it pins these:
 | `PANDOC_VERSION` | 3.10 | drives the OMNeT++ manual's LaTeX→RST conversion; the converter is version-sensitive |
 | `DOXYGEN_VERSION` | 1.14.0 | newest release doxysphinx's frozen LibSass scoper can still parse |
 | `UV_VERSION` | 0.13.1 | build-time only; installs the Sphinx stack from `uv.lock` |
+| `OPP_TOOLS_VERSION` | 1.0.2 | `@omnetpp/opp-tools` on npm; change `OPP_TOOLS_INTEGRITY` with it, to the output of `npm view @omnetpp/opp-tools@<version> dist.integrity` |
 
 Override one for a test build with `podman build --build-arg PANDOC_VERSION=…`.
 
@@ -140,8 +148,8 @@ OMNeT++ and Sphinx's default fonts), so a missing LaTeX package fails the image
 build instead of a later PDF build. Renew the preamble copy when the manual needs
 new LaTeX packages.
 
-Exception: opp-tools is whatever tarball `build.sh` bundled; its version is in the
-`org.omnetpp.opp-tools.version` (and `.commit`) image labels.
+The opp-tools version is also in the `org.omnetpp.opp-tools.version` image label
+(with an `.commit` label for a local tarball).
 
 ## Using it
 

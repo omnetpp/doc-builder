@@ -87,8 +87,8 @@ On the website:
 
 ## Development
 
-- The image is built with [`image/build.sh`](image/build.sh) from the root of this repository; `vscode` there is a
-  symlink to a checkout of omnetpp-vscode, whose `opp_docgen` the image bundles (see
+- The image is built with [`image/build.sh`](image/build.sh) from the root of this repository. It bundles the
+  `opp_docgen` of the `@omnetpp/opp-tools` npm package, or for a test image a local build of it (see
   [Build locally](image/README.md#build-locally)).
 - The action is `action.yml` at the root of the repository. Its logic is in `doc-builder.sh` beside it, which also
   runs locally, so that it can be tried without pushing it, also with a locally built image (`--image`).
@@ -96,8 +96,9 @@ On the website:
   (`site/doc`). [`.github/workflows/test.yml`](.github/workflows/test.yml) builds it with the action of the commit
   (`uses: ./`) on every push and weekly; [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds it
   with `omnetpp/doc-builder@v1` on pushes to `v1`, and deploys it to GitHub Pages.
-- After changing the `v1` branch, publish its image from it (`image/build.sh --push`, see
-  [Publishing](image/README.md#publishing)); for a release, tag the commit first.
+- [`.github/workflows/doc-builder-image.yml`](.github/workflows/doc-builder-image.yml) publishes the image of `v1`
+  when a push changes it, and the image of a release when its tag is pushed (see
+  [Publishing](image/README.md#publishing)).
 
 ## License
 
