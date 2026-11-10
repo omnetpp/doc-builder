@@ -50,8 +50,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # `convert`) to turn GIF/SVG images into something pdflatex can embed; its SVG coder
 # is in the -extra package, which --no-install-recommends would skip (the name
 # carries the ABI version, so it changes with the Ubuntu base). rsvg-convert renders
-# the manual's SVG figures to PDF. All of it is in this first layer, which changes
-# least, so that the large TeX download stays cached.
+# the manual's SVG figures to PDF. perl and xmllint are for the LaTeX->HTML and
+# LaTeX->Eclipse-help builds of the manual that go into the OMNeT++ release archives.
+# All of it is in this first layer, which changes least, so that the large TeX
+# download stays cached.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         graphviz \
         nodejs \
@@ -68,6 +70,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         librsvg2-bin \
         imagemagick \
         libmagickcore-7.q16-10-extra \
+        perl \
+        libxml2-utils \
     && rm -rf /var/lib/apt/lists/* /var/log/* /var/cache/* /usr/share/doc/* /usr/share/man/*
 
 # Doxygen: official binary release (no libclang dependency, unlike the apt package).
@@ -146,7 +150,8 @@ RUN git config --system --add safe.directory '*'
 #     with the OMNeT++ guides' fonts and with Sphinx's defaults (as INET uses), and
 #     with a GIF and an SVG image, so a missing ImageMagick or coder is an error
 #     rather than a silently dropped figure;
-#   - rsvg-convert renders an SVG to PDF.
+#   - rsvg-convert renders an SVG to PDF;
+#   - the other tools of the manual's build (bibtex, makeindex, perl, xmllint) are there.
 RUN --mount=type=bind,source=image/smoke/manual-preamble.tex,target=/tmp/manual-preamble.tex \
     --mount=type=bind,source=image/smoke/pdf,target=/tmp/pdf-smoke \
     set -eu; \
@@ -165,6 +170,9 @@ RUN --mount=type=bind,source=image/smoke/manual-preamble.tex,target=/tmp/manual-
     done; \
     rsvg-convert -f pdf -o /tmp/smoke/smoke.pdf /tmp/pdf-smoke/smoke.svg; \
     test -s /tmp/smoke/smoke.pdf; \
+    for tool in bibtex makeindex perl xmllint; do \
+        command -v "$tool" > /dev/null || { echo "$tool is missing" >&2; exit 1; }; \
+    done; \
     rm -rf /tmp/smoke
 
 # Everything above is the toolchain, which only a new tool version or uv.lock changes; the

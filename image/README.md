@@ -80,7 +80,7 @@ podman inspect -f '{{json .Labels}}' ghcr.io/omnetpp/doc-builder:latest
 The build context is the root of this repository (`image/` and `extensions/`);
 building without `build.sh` requires staging the tarball by hand. `IMAGE=<ref>`
 builds under another name, e.g. a test image that `doc-builder.sh --image <ref>` or
-the documentation build of OMNeT++ (`IMAGE=<ref> doc/src/site/run.sh`) can try.
+the documentation build of OMNeT++ (`IMAGE=<ref> doc/src/build.sh <target>`) can try.
 
 The `Containerfile` installs the toolchain first (TeX Live, doxygen, pandoc, the
 Python stack from `uv.lock`, the theme's fonts) and checks the PDF build, then adds
@@ -147,7 +147,7 @@ Exception: opp-tools is whatever tarball `build.sh` bundled; its version is in t
 
 - A model project builds its documentation site with the [action](../README.md), which
   runs in this image.
-- OMNeT++ builds its documentation in it (omnetpp-dev `doc/src/site/run.sh` and `deploy-docs.yml`), and so does
+- OMNeT++ builds its documentation in it (omnetpp-dev `doc/src/build.sh`, its release scripts and `deploy-docs.yml`), and so does
   INET (its `doc/src/build`).
 - Any other build can run in it or derive from it, and generate the NED reference with `opp_docgen`
   (`--format=rst` to embed it in a Sphinx site, `html-material`/`html-readthedocs` for a standalone subtree):
