@@ -53,6 +53,25 @@ jobs:
           grep -q 'api/classsample_1_1Source.html' "$SITE/config/writing.html"
           grep -q 'ned/types/sample.Source.html' "$SITE/config/writing.html"
 
+  # The pages alone, without the NED reference and the C++ API
+  sphinx-without-ned:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          project-dir: site
+          title: Sample Model
+          sphinx-source: site/doc
+          ned: false
+          upload-pages-artifact: false
+      - name: Check the site
+        run: |
+          test -f _site/index.html
+          test -f _site/config/writing.html
+          test ! -e _site/ned
+          test ! -e _site/api
+
   sphinx-pdf:
     runs-on: ubuntu-latest
     steps:

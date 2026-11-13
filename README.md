@@ -78,7 +78,8 @@ On the website:
   [the C++ API](https://omnetpp.org/doc-builder/guide/cpp-api.html) and
   [PDFs](https://omnetpp.org/doc-builder/guide/pdf.html)
 - [Models that build on other models](https://omnetpp.org/doc-builder/guide/dependencies.html), e.g. on INET
-- [Running locally](https://omnetpp.org/doc-builder/guide/local.html) with `doc-builder.sh`
+- [Running locally](https://omnetpp.org/doc-builder/guide/local.html) with `doc-builder.sh`, also only the pages
+  of the Sphinx project, served and rebuilt as you edit them
 - [Versions and the image](https://omnetpp.org/doc-builder/guide/versions.html)
 - [Inputs of the action](https://omnetpp.org/doc-builder/config/inputs.html), and the settings of
   [the theme](https://omnetpp.org/doc-builder/config/theme.html),

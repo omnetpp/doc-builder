@@ -22,6 +22,11 @@ inputs:
       The Sphinx project (the directory of conf.py) to build the site from. Without it, the site is the
       NED reference alone.
     default: ''
+  ned:
+    description: >-
+      Generate the NED reference. With false, only the pages of the Sphinx project are built (needs
+      sphinx-source).
+    default: 'true'
   ned-dir:
     description: Where the NED reference is generated in the Sphinx project.
     default: ned
@@ -89,6 +94,7 @@ runs:
         OUTPUT_DIR: ${{ inputs.output-dir }}
         TITLE: ${{ inputs.title }}
         SPHINX_SOURCE: ${{ inputs.sphinx-source }}
+        NED: ${{ inputs.ned }}
         NED_DIR: ${{ inputs.ned-dir }}
         NED_FORMAT: ${{ inputs.ned-format }}
         NED_PATH: ${{ inputs.ned-path }}
@@ -114,7 +120,7 @@ runs:
         fi
         "$GITHUB_ACTION_PATH/doc-builder.sh" \
           --project-dir="$PROJECT_DIR" --output-dir="$OUTPUT_DIR" --title="$TITLE" \
-          --sphinx-source="$SPHINX_SOURCE" --ned-dir="$NED_DIR" --ned-format="$NED_FORMAT" \
+          --sphinx-source="$SPHINX_SOURCE" --ned="$NED" --ned-dir="$NED_DIR" --ned-format="$NED_FORMAT" \
           --ned-path="$NED_PATH" --external-docs="$EXTERNAL_DOCS" --docgen-args="$DOCGEN_ARGS" \
           --doxygen="$DOXYGEN" --doxygen-input="$DOXYGEN_INPUT" --doxyfile="$DOXYFILE" --api-dir="$API_DIR" \
           --pdf="$PDF" --sphinx-args="$SPHINX_ARGS" --fail-on-warnings="$FAIL_ON_WARNINGS" \

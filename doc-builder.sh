@@ -27,6 +27,8 @@ reference is generated as reStructuredText into the Sphinx project, which is the
   --title TEXT            name of the project, in the titles of the NED reference and the C++ API
                           ("TEXT NED Reference", "TEXT C++ Reference"; default: name of the project dir)
   --sphinx-source DIR     the Sphinx project (with conf.py) to build the site from
+  --ned                   generate the NED reference (default); --ned=false builds only the pages of
+                          the Sphinx project, which is quicker while working on them
   --ned-dir DIR           where the NED reference goes in the Sphinx project (default: ned)
   --ned-format FORMAT     opp_docgen format without Sphinx: html-material (default), html-readthedocs
                           or html
@@ -43,11 +45,17 @@ reference is generated as reStructuredText into the Sphinx project, which is the
   --pdf                   also build the Sphinx project as PDF (latexpdf)
   --sphinx-args ARGS      further sphinx-build arguments (split at whitespace)
   --fail-on-warnings      fail if opp_docgen or Sphinx warn
+  --serve                 then serve the site at http://localhost:PORT/ until Ctrl-C; with
+                          --sphinx-source, a changed page is rebuilt and reloaded in the browser
+  --port PORT             port for --serve (default: 8000)
   --image-tag TAG         tag of ghcr.io/omnetpp/doc-builder (default: latest)
   --image REF             image to use instead, as is
   -h, --help              show this help
 
 Boolean options also take a value: --pdf=true, --pdf=false.
+
+A reference that is not generated (the NED reference with --ned=false, the C++ API without --doxygen)
+is removed from where an earlier build generated it, so that the Sphinx build does not read it.
 EOF
 }
 
@@ -60,6 +68,7 @@ project_dir=.
 output_dir=_site
 title=
 sphinx_source=
+ned=true
 ned_dir=ned
 ned_format=html-material
 ned_path=
@@ -72,6 +81,8 @@ api_dir=api
 pdf=false
 sphinx_args=
 fail_on_warnings=false
+serve=false
+port=8000
 image_tag=latest
 image=
 
@@ -85,9 +96,9 @@ set_bool() {
 set_option() {
     case "$1" in
         project-dir|output-dir|title|sphinx-source|ned-dir|ned-format|ned-path|external-docs|docgen-args| \
-        doxygen-input|doxyfile|api-dir|sphinx-args|image-tag|image)
+        doxygen-input|doxyfile|api-dir|sphinx-args|port|image-tag|image)
             printf -v "${1//-/_}" %s "$2" ;;
-        doxygen|pdf|fail-on-warnings)
+        ned|doxygen|pdf|fail-on-warnings|serve)
             set_bool "${1//-/_}" "$2" ;;
         *) die "unknown option --$1 (see --help)" ;;
     esac
@@ -99,7 +110,7 @@ while [ $# -gt 0 ]; do
     shift
     case "$arg" in
         -h|--help) usage; exit 0 ;;
-        --doxygen|--pdf|--fail-on-warnings) set_option "${arg#--}" true ;;
+        --ned|--doxygen|--pdf|--fail-on-warnings|--serve) set_option "${arg#--}" true ;;
         --*=*) name="${arg%%=*}"; set_option "${name#--}" "${arg#*=}" ;;
         --*) [ $# -gt 0 ] || die "$arg needs a value"; set_option "${arg#--}" "$1"; shift ;;
         *) die "unexpected argument '$arg' (see --help)" ;;
@@ -109,7 +120,10 @@ done
 if [ -z "$sphinx_source" ]; then
     case "$ned_format" in html-material|html-readthedocs|html) ;; *) die "unknown --ned-format '$ned_format'" ;; esac
     [ "$pdf" = false ] || die "--pdf needs --sphinx-source: opp_docgen writes no PDF"
+    [ "$ned" = true ] || die "--ned=false needs --sphinx-source: the site would have no pages"
 fi
+[ "$serve" = false ] || [ "$pdf" = false ] || die "--serve builds HTML only; leave out --pdf"
+[[ "$port" =~ ^[0-9]+$ ]] || die "--port takes a number, not '$port'"
 [ -n "$image" ] || image="ghcr.io/omnetpp/doc-builder:$image_tag"
 
 if [ -z "${ENGINE:-}" ]; then
@@ -140,8 +154,14 @@ if [ "$ENGINE" != none ] && [ -z "${DOC_BUILDER_IN_CONTAINER:-}" ]; then
     if ! "$ENGINE" info 2>/dev/null | grep -Eqi 'name=rootless|rootless: true'; then
         user+=(--user "$(id -u):$(id -g)")
     fi
+    run=()
+    if [ "$serve" = true ]; then
+        run+=(-p "127.0.0.1:$port:$port")
+        # a terminal, so that Ctrl-C reaches the server
+        [ ! -t 0 ] || [ ! -t 1 ] || run+=(-it)
+    fi
     echo "doc-builder: running in $image with $ENGINE"
-    exec "$ENGINE" run --rm --init --platform linux/amd64 "${user[@]}" "${mounts[@]}" \
+    exec "$ENGINE" run --rm --init --platform linux/amd64 "${user[@]}" "${mounts[@]}" "${run[@]}" \
         -e HOME=/tmp -e DOC_BUILDER_IN_CONTAINER=1 -w "$root" \
         "$image" bash "$HERE/doc-builder.sh" "${args[@]}"
 fi
@@ -161,6 +181,16 @@ prepare_dir() {
     find "$1" -mindepth 1 -delete
     touch "$1/$MARKER"
 }
+
+# A part that this run does not build must not be read from an earlier build. A directory without the
+# marker is the project's own and is left as it is.
+remove_generated() {
+    [ ! -e "$1/$MARKER" ] || prepare_dir "$1"
+}
+
+# The server binds to all interfaces only in the container, whose port is published on localhost only.
+serve_host=127.0.0.1
+[ -z "${DOC_BUILDER_IN_CONTAINER:-}" ] || serve_host=0.0.0.0
 
 warnings=0
 
@@ -257,14 +287,20 @@ else
     [ -f "$src/conf.py" ] || die "no conf.py in $sphinx_source"
     ned_out="$src/$ned_dir"
     api_out="$src/$api_dir"
-    prepare_dir "$ned_out"
     doxy=()
     if [ "$doxygen" = true ]; then
         prepare_dir "$api_out"
         run_doxygen "$api_out" true
         mapfile -t doxy < <(doxytags_opts "$ned_out/types" "$api_out")
+    else
+        remove_generated "$api_out"
     fi
-    docgen --format=rst -o "$ned_out" "${doxy[@]}" "${docgen_opts[@]}" "$project"
+    if [ "$ned" = true ]; then
+        prepare_dir "$ned_out"
+        docgen --format=rst -o "$ned_out" "${doxy[@]}" "${docgen_opts[@]}" "$project"
+    else
+        remove_generated "$ned_out"
+    fi
 
     prepare_dir "$out"
     if [ "$doxygen" = true ]; then
@@ -290,6 +326,11 @@ else
     # From the Sphinx project, so that relative paths in conf.py that Sphinx does not resolve itself
     # (e.g. the tag files of doxylink) mean the same as in a plain `sphinx-build .` there.
     cd "$src"
+    if [ "$serve" = true ]; then
+        [ "$warnings" = 0 ] || echo "doc-builder: opp_docgen reported warnings"
+        echo "doc-builder: serving $out at http://localhost:$port/, rebuilt on changes (Ctrl-C stops)"
+        exec sphinx-autobuild -b html "${sphinx_opts[@]}" --host "$serve_host" --port "$port" . "$out"
+    fi
     sphinx-build -b html "${sphinx_opts[@]}" . "$out" || die "sphinx-build failed"
     if [ "$pdf" = true ]; then
         sphinx-build -M latexpdf . "$work/pdf" "${sphinx_opts[@]}" || die "sphinx-build latexpdf failed"
@@ -300,3 +341,7 @@ fi
 
 echo "doc-builder: built $out"
 [ "$warnings" = 0 ] || echo "doc-builder: opp_docgen reported warnings"
+if [ "$serve" = true ]; then
+    echo "doc-builder: serving $out at http://localhost:$port/ (Ctrl-C stops)"
+    exec python3 -m http.server --directory "$out" --bind "$serve_host" "$port"
+fi
